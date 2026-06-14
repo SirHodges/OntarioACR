@@ -1,0 +1,2 @@
+# Serve index.html as the root homepage
+/    /index.html    200

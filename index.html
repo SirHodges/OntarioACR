@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ACR Code Lookup</title>
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ACR Codes">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#eef2f1; --panel:#ffffff; --ink:#13201d; --muted:#5d6f6a;
+    --line:#dde5e2; --field:#f3f6f5;
+    --accent:#0f766e; --accent-ink:#0b5a54;
+    --form:#0f766e; --form-bg:#dcefe9;
+    --add:#b4530e; --add-bg:#fbe7d6;
+    --local:#5b4bc4; --local-bg:#e7e3fb;
+    --common:#9a6a00; --common-bg:#fbeec2;
+    --hit:#fff2bf;
+  }
+  :root.dark{
+    --bg:#0e1513; --panel:#172420; --ink:#e7efeb; --muted:#94a8a1;
+    --line:#2a3a34; --field:#1f2d28;
+    --accent:#1aa18f; --accent-ink:#5fd0bf;
+    --form:#3bbfa9; --form-bg:#173029;
+    --add:#e0975a; --add-bg:#36251a;
+    --local:#a99cf5; --local-bg:#272252;
+    --common:#e0b24a; --common-bg:#352b12;
+    --hit:#5a4d16;
+  }
+  :root.dark .news .msg{color:#c2cfc9}
+  :root.dark .row:hover{border-color:#34463f}
+  :root.dark .modal-back:hover, :root.dark .x:hover{background:#22302b}
+  :root.dark .hlinks a:hover, :root.dark .toolopt:hover{background:#173029}
+  :root.dark .tbtn.primary,
+  :root.dark .chip[aria-pressed="true"],
+  :root.dark .dock-main,
+  :root.dark .toast{background:#1e2d28;color:#eef4f1;border-color:#314039}
+  :root.dark .tbtn.primary:hover,
+  :root.dark .dock-main:hover{background:#26352f}
+  .theme-toggle{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--panel);
+    color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent}
+  .theme-toggle:hover{border-color:var(--accent);color:var(--accent-ink)}
+  .prebar{display:flex;align-items:center;justify-content:flex-start;padding-top:12px}
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  [hidden]{display:none!important}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,sans-serif;
+    line-height:1.45;-webkit-font-smoothing:antialiased;padding:0 16px 64px;}
+  .wrap{max-width:820px;margin:0 auto}
+
+  header{padding:34px 0 8px}
+  .eyebrow{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.22em;
+    text-transform:uppercase;color:var(--accent-ink);font-weight:700;margin:0 0 8px}
+  h1{font-family:'Archivo',sans-serif;font-weight:800;font-size:clamp(28px,6vw,40px);
+    letter-spacing:-.02em;margin:0;line-height:1.02}
+  .sub{color:var(--muted);margin:10px 0 0;font-size:15px;max-width:60ch}
+
+  /* news banner */
+  .news{position:relative;display:flex;align-items:center;justify-content:center;
+    background:var(--panel);color:var(--muted);border:1px solid var(--line);border-radius:9px;padding:9px 40px;margin-top:16px}
+  .news .msg{min-width:0;text-align:center;font-weight:500;font-size:14px;color:#4c5853;transition:opacity .4s ease}
+  .news .msg a{color:var(--accent-ink);font-weight:600;text-decoration:underline}
+  .news .msg a:hover{color:var(--accent)}
+  .news-x{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:0;background:transparent;
+    color:var(--muted);cursor:pointer;font-size:18px;line-height:1;padding:3px 6px;border-radius:6px}
+  .news-x:hover{color:var(--ink);background:var(--field)}
+  @media (prefers-reduced-motion:reduce){.news .msg{transition:none}}
+
+  /* toolbar */
+  .toolbar{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0 6px}
+  .tbtn{font:600 14px 'Inter',sans-serif;padding:14px 12px;border-radius:12px;cursor:pointer;
+    border:1px solid var(--line);background:var(--panel);color:var(--ink);transition:.14s;text-decoration:none;
+    display:flex;align-items:center;justify-content:center;gap:8px;min-height:50px}
+  .tbtn.ghost{border-style:dashed;color:#9aaaa5;cursor:default;background:transparent}
+  .tbtn.ghost:hover{border-color:var(--line)}
+  .tbtn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .tbtn.is-disabled{opacity:.45;pointer-events:none}
+  .tbtn.primary:hover{background:#0b1614}
+  .tbtn.primary svg{flex:0 0 auto}
+  .tbtn.faq,.tbtn.qref{flex-direction:column;gap:3px}
+  .faq-main{display:flex;align-items:center;gap:7px}
+  .faq-updated,.qref-note{font:600 10px 'JetBrains Mono',monospace;color:rgba(255,255,255,.78);letter-spacing:.02em}
+  .faq-updated.fresh,.qref-note.fresh{color:#3a2f00;background:#ffd98a;padding:2px 8px;border-radius:999px;
+    animation:freshpulse 1.2s ease-in-out infinite}
+  @keyframes freshpulse{0%,100%{box-shadow:0 0 0 0 rgba(255,217,138,.7)}50%{box-shadow:0 0 0 6px rgba(255,217,138,0)}}
+  @media (prefers-reduced-motion:reduce){.faq-updated.fresh,.qref-note.fresh{animation:none}}
+
+  /* search */
+  .searchbar{position:sticky;top:0;z-index:10;padding:12px 0 10px;
+    background:linear-gradient(var(--bg) 72%,rgba(238,242,241,0))}
+  .field{display:flex;align-items:center;gap:12px;background:var(--panel);
+    border:2px solid var(--line);border-radius:14px;padding:0 16px;transition:.15s}
+  .field:focus-within{border-color:var(--accent);box-shadow:0 0 0 4px rgba(15,118,110,.12)}
+  .field>svg{flex:0 0 auto;color:var(--muted)}
+  #q{flex:1;border:0;outline:0;background:transparent;padding:16px 0;font-size:18px;
+    font-family:'Inter',sans-serif;color:var(--ink)}
+  #q::placeholder{color:#9aaaa5}
+  .clear{border:0;background:transparent;cursor:pointer;color:var(--muted);font-size:22px;
+    line-height:1;padding:6px;display:none;border-radius:8px}
+  .clear:hover{background:var(--field);color:var(--ink)}
+
+  .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
+  .chip{font:600 13px 'Inter',sans-serif;cursor:pointer;border:1px solid var(--line);
+    background:var(--panel);color:var(--muted);padding:7px 13px;border-radius:999px;transition:.12s}
+  .chip:hover{border-color:var(--accent)}
+  .chip[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .chip.common-chip[aria-pressed="true"]{background:var(--common);border-color:var(--common)}
+  .count{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted)}
+
+  /* results */
+  #list{margin-top:14px;display:flex;flex-direction:column;gap:8px}
+  .row{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px 13px;
+    cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent}
+  .row:hover{border-color:#c6d2ce}
+  .row:active{transform:scale(.995)}
+  .row.flash{border-color:var(--accent);background:var(--form-bg)}
+  .row.is-common{border-left:2px solid var(--common)}
+  .right{display:flex;align-items:center;gap:11px}
+  .plus{width:30px;height:30px;border-radius:50%;background:var(--field);border:1px solid var(--line);
+    color:var(--accent-ink);font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  .row:hover .plus{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .code{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:14px;
+    color:var(--accent-ink);background:var(--field);border:1px solid var(--line);
+    padding:4px 7px;border-radius:7px;min-width:50px;text-align:center;white-space:nowrap}
+  .meta{min-width:0}
+  .title{font-weight:600;font-size:14.5px;color:var(--ink)}
+  .title .star{color:var(--common);margin-right:5px}
+  .title mark{background:var(--hit);color:inherit;border-radius:3px;padding:0 1px}
+  .cat{font-size:12px;color:var(--muted);margin-top:2px}
+  .badge{font:700 10px 'JetBrains Mono',monospace;letter-spacing:.04em;text-transform:uppercase;
+    padding:4px 8px;border-radius:999px;white-space:nowrap}
+  .b-form{background:var(--form-bg);color:var(--form)}
+  .b-add{background:var(--add-bg);color:var(--add)}
+  .b-local{background:var(--local-bg);color:var(--local)}
+
+  .empty{text-align:center;padding:46px 18px;color:var(--muted);background:var(--panel);
+    border:1px dashed var(--line);border-radius:14px;margin-top:14px}
+  .empty h2{font-family:'Archivo';font-weight:700;color:var(--ink);margin:0 0 6px;font-size:19px}
+  .examples{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;margin-top:14px}
+  .ex{font:600 13px 'Inter';cursor:pointer;border:1px solid var(--line);background:var(--field);
+    color:var(--accent-ink);padding:7px 12px;border-radius:999px}
+  .ex:hover{border-color:var(--accent)}
+
+  .legend{display:flex;flex-wrap:wrap;gap:16px;margin-top:22px;font-size:12.5px;color:var(--muted)}
+  .legend span{display:inline-flex;align-items:center;gap:7px}
+  .dot{width:10px;height:10px;border-radius:3px;display:inline-block}
+
+  /* modal */
+  .overlay{position:fixed;inset:0;background:rgba(15,25,23,.55);display:none;
+    align-items:flex-start;justify-content:center;padding:40px 16px;z-index:50;overflow:auto}
+  .overlay.open{display:flex}
+  .modal{background:var(--panel);border-radius:16px;max-width:520px;width:100%;
+    box-shadow:0 24px 60px rgba(0,0,0,.28);animation:rise .18s ease}
+  @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .modal-head{display:flex;align-items:center;justify-content:space-between;
+    padding:20px 22px 14px;border-bottom:1px solid var(--line)}
+  .modal-head h2{font-family:'Archivo';font-weight:800;font-size:20px;margin:0;letter-spacing:-.01em}
+  .mh-left{display:flex;align-items:center;gap:10px;min-width:0}
+  .modal-back{border:0;background:var(--field);width:32px;height:32px;border-radius:9px;cursor:pointer;
+    color:var(--muted);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  .modal-back:hover{background:#e6ece9;color:var(--ink)}
+  .modal-back[hidden]{display:none}
+  .x{border:0;background:var(--field);width:34px;height:34px;border-radius:9px;cursor:pointer;
+    font-size:20px;line-height:1;color:var(--muted)}
+  .x:hover{background:#e6ece9;color:var(--ink)}
+  .modal-body{padding:8px 22px 22px}
+  .grouplabel{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--muted);font-weight:700;margin:16px 0 8px}
+  .hrow{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center;
+    padding:10px 0;border-bottom:1px solid var(--field)}
+  .hrow:last-child{border-bottom:0}
+  .hcode{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:16px;color:var(--local);
+    background:var(--local-bg);padding:5px 10px;border-radius:8px;min-width:62px;text-align:center}
+  .hname{font-weight:600;font-size:15px}
+  .hlinks{display:flex;flex-direction:column;gap:8px}
+  .hlinks a{display:flex;align-items:center;justify-content:space-between;gap:10px;text-decoration:none;
+    color:var(--accent-ink);font:600 14px 'Inter';background:var(--field);border:1px solid var(--line);
+    border-radius:10px;padding:12px 14px}
+  .hlinks a:hover{border-color:var(--accent);background:#eaf3f0}
+
+  /* other tools grid */
+  .toolgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:4px}
+  .toolopt{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;text-align:center;min-height:74px;
+    border:1px solid var(--line);border-radius:12px;background:var(--field);cursor:pointer;text-decoration:none;
+    color:var(--ink);padding:12px}
+  .toolopt-t{font:700 14px 'Inter'}
+  .toolopt-sub{font:600 11px 'JetBrains Mono',monospace;color:var(--muted);letter-spacing:.02em}
+  .toolopt:hover{border-color:var(--accent);background:#eaf3f0;color:var(--accent-ink)}
+  .toolopt.is-empty{border-style:dashed;background:transparent;cursor:default;opacity:.5}
+  .toolopt.is-empty:hover{border-color:var(--line);background:transparent;color:var(--ink)}
+  @media (max-width:480px){.toolgrid{grid-template-columns:1fr}}
+
+  /* abbreviations */
+  .ab-intro{color:var(--muted);font-size:13.5px;margin:2px 0 4px}
+  .abrow{display:grid;grid-template-columns:104px 1fr;gap:12px;align-items:baseline;
+    padding:6px 0;border-bottom:1px solid var(--field)}
+  .ab-c{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:13.5px;color:var(--accent-ink)}
+  .ab-d{font-size:14px;color:var(--ink)}
+  @media (max-width:480px){.abrow{grid-template-columns:84px 1fr;gap:10px}.ab-c{font-size:12.5px}}
+
+  /* quick reference — hospital collapsible */
+  .qr-hosp{margin-top:14px;border-top:1px solid var(--line);padding-top:6px}
+  .qr-hosp>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;
+    gap:10px;padding:10px 0;font:700 15px 'Inter';color:var(--ink)}
+  .qr-hosp>summary::-webkit-details-marker{display:none}
+  .qr-hosp .chev{color:var(--muted);transition:transform .2s}
+  .qr-hosp[open] .chev{transform:rotate(180deg)}
+
+  /* quick reference */
+  .qr-row{display:grid;grid-template-columns:160px 1fr;gap:14px;padding:12px 0;
+    border-bottom:1px solid var(--field);align-items:baseline}
+  .qr-row:last-child{border-bottom:0}
+  .qr-label{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--muted);font-weight:700;padding-top:3px}
+  .qr-val{font-weight:600;font-size:16px}
+  .qr-val.mono{font-family:'JetBrains Mono',monospace;color:var(--accent-ink);
+    background:var(--field);border:1px solid var(--line);padding:4px 10px;border-radius:8px;display:inline-block}
+  .qr-pairs{display:flex;flex-wrap:wrap;gap:8px}
+  .qr-pair{display:inline-flex;align-items:center;gap:7px;background:var(--field);
+    border:1px solid var(--line);border-radius:8px;padding:5px 10px;font-size:14px}
+  .qr-pair b{font-family:'JetBrains Mono',monospace;color:var(--accent-ink)}
+  .qr-colours{display:flex;flex-wrap:wrap;gap:8px}
+  .qr-col{width:38px;height:38px;border-radius:9px;display:flex;align-items:center;
+    justify-content:center;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:16px}
+  .qr-note{font-size:12.5px;color:var(--muted);margin-top:7px}
+  @media (max-width:480px){.qr-row{grid-template-columns:1fr;gap:6px}}
+
+  /* queue dock */
+  body.has-dock{padding-bottom:96px}
+  .dock{position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;gap:10px;justify-content:center;
+    padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+    background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-top:1px solid var(--line)}
+  .dock-main{flex:1 1 auto;max-width:560px;display:flex;align-items:center;justify-content:center;gap:11px;
+    background:var(--ink);color:#fff;border:0;border-radius:13px;padding:15px;cursor:pointer;
+    font:700 16px 'Inter',sans-serif}
+  .dock-main:hover{background:#0b1614}
+  .dock-count{background:var(--accent);color:#fff;font-family:'JetBrains Mono',monospace;
+    min-width:28px;height:28px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;
+    padding:0 7px;font-size:14px;transition:transform .15s}
+  .dock-count.bump{transform:scale(1.35)}
+  .dock-clear{flex:0 0 auto;background:var(--panel);border:1px solid var(--line);border-radius:13px;
+    padding:0 20px;cursor:pointer;font:600 15px 'Inter',sans-serif;color:var(--muted)}
+  .dock-clear:hover{border-color:var(--add);color:var(--add)}
+
+  /* list / transcription view */
+  .sheet{position:fixed;inset:0;z-index:60;background:var(--bg);display:flex;flex-direction:column}
+  .sheet-bar{display:flex;align-items:center;gap:12px;padding:16px;border-bottom:1px solid var(--line);
+    background:var(--panel)}
+  .sheet-bar h2{flex:1;text-align:center;font-family:'Archivo';font-weight:800;font-size:19px;margin:0}
+  .sheet-back,.sheet-clear{border:1px solid var(--line);background:var(--panel);border-radius:10px;
+    padding:10px 14px;cursor:pointer;font:600 14px 'Inter',sans-serif}
+  .sheet-back{color:var(--accent-ink)}
+  .sheet-back:hover{border-color:var(--accent)}
+  .sheet-clear{color:var(--add)}
+  .sheet-clear:hover{border-color:var(--add);background:var(--add-bg)}
+  .sheet-body{flex:1;overflow:auto;padding:14px 16px calc(20px + env(safe-area-inset-bottom));
+    max-width:820px;width:100%;margin:0 auto}
+  .sheet-foot{flex:0 0 auto;border-top:1px solid var(--line);background:var(--panel);
+    padding:14px 16px calc(14px + env(safe-area-inset-bottom))}
+  .sheet-foot-inner{display:flex;gap:10px;max-width:820px;width:100%;margin:0 auto}
+  .foot-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line);
+    background:var(--panel);border-radius:11px;padding:13px;cursor:pointer;font:700 15px 'Inter',sans-serif;color:var(--ink)}
+  .foot-btn:hover{border-color:var(--accent);color:var(--accent-ink)}
+  .foot-btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .foot-btn.primary:hover{background:var(--accent-ink);color:#fff}
+  .foot-btn.ok{border-color:var(--accent);color:var(--accent-ink)}
+  .foot-btn:disabled{opacity:.45;cursor:default}
+  .foot-btn:disabled:hover{border-color:var(--line);color:var(--ink)}
+  .qhint{display:flex;align-items:center;gap:6px;padding:8px 12px 4px;font-size:12px;color:var(--muted)}
+  .qhint svg{width:14px;height:14px;opacity:.8;flex:0 0 auto}
+  .qline{display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--line);
+    user-select:none;-webkit-user-select:none}
+  .qline.lift{background:var(--field);border-radius:10px;border-bottom-color:transparent;box-shadow:0 6px 18px rgba(0,0,0,.22)}
+  .qhandle{display:inline-flex;align-items:center;gap:3px;flex:0 0 auto;color:var(--muted);cursor:grab;
+    touch-action:none;padding:5px 2px;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
+  .qhandle:active{cursor:grabbing}
+  .qhandle svg{opacity:.75;flex:0 0 auto}
+  .qnum{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:13px;color:var(--muted);min-width:14px;text-align:right}
+  .qcode{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:14px;color:var(--accent-ink);
+    background:var(--field);border:1px solid var(--line);padding:3px 7px;border-radius:7px;min-width:46px;text-align:center;flex:0 0 auto}
+  .qdesc{flex:1;min-width:0;font-weight:600;font-size:14px;line-height:1.3;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .qctrl{display:flex;gap:6px;flex:0 0 auto}
+  .qbtn{width:34px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--panel);
+    cursor:pointer;font-size:16px;line-height:1;color:var(--muted);display:flex;align-items:center;justify-content:center}
+  .qbtn:hover{border-color:var(--accent);color:var(--ink)}
+  .qbtn:disabled{opacity:.3;cursor:default}
+  .qbtn.del:hover{border-color:var(--add);color:var(--add);background:var(--add-bg)}
+  .qbtn.arrow{display:none}
+  @media (min-width:600px){ .qbtn.arrow{display:flex} .qhint{display:none} }
+  .sheet-empty{text-align:center;color:var(--muted);padding:64px 20px}
+  .sheet-empty b{display:block;font-family:'Archivo';font-weight:700;color:var(--ink);font-size:18px;margin-bottom:6px}
+
+  /* toast */
+  .toast{position:fixed;left:50%;bottom:108px;transform:translateX(-50%);z-index:70;
+    background:var(--ink);color:#fff;border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:14px;
+    font:600 14px 'Inter';box-shadow:0 12px 30px rgba(0,0,0,.25);max-width:calc(100% - 32px)}
+  .toast button{background:transparent;border:0;color:#ffd98a;font:700 14px 'Inter';cursor:pointer;padding:2px 4px}
+
+  @media (max-width:640px){.toolbar{grid-template-columns:repeat(2,1fr)}}
+  @media (max-width:560px){.row{gap:10px;padding:10px 12px}
+    .code{min-width:46px;font-size:13.5px}}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+<script>(function(){try{var t=localStorage.getItem('acr-theme');if(!t)t=(window.matchMedia&&matchMedia('(prefers-color-scheme:dark)').matches)?'dark':'light';if(t==='dark')document.documentElement.classList.add('dark');}catch(e){}})();</script>
+</head>
+<body>
+<div class="wrap">
+  <div class="news" id="news" role="status" aria-live="polite">
+    <span class="msg" id="newsMsg"></span>
+    <button class="news-x" id="newsX" aria-label="Dismiss">&times;</button>
+  </div>
+
+  <div class="toolbar">
+
+    <button class="tbtn primary qref" id="quickrefBtn">
+      <span class="faq-main">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h12a2 2 0 0 1 2 2v14l-4-3-4 3V6a2 2 0 0 0-2-2H4z"/><path d="M4 4v14a2 2 0 0 0 2 2h2"/></svg>
+        Quick reference
+      </span>
+    </button>
+    <button class="tbtn primary" id="otherToolsBtn">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h4l2-2h6l2 2h4v12H3z"/><circle cx="12" cy="13" r="3"/></svg>
+      Other Tools
+    </button>
+  </div>
+
+  <div class="searchbar">
+    <div class="field">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      <input id="q" type="search" autocomplete="off" autofocus placeholder="Search codes, e.g. fentanyl, stroke, 12-lead…" aria-label="Search ACR codes">
+      <button class="clear" id="clear" aria-label="Clear search">&times;</button>
+    </div>
+    <div class="controls">
+      <button class="chip" data-f="all" aria-pressed="true">All</button>
+      <button class="chip common-chip" data-f="common" aria-pressed="false">★ Common</button>
+      <span class="count" id="count" aria-live="polite"></span>
+    </div>
+  </div>
+
+  <div id="list"></div>
+
+  <div class="legend">
+    <span><i class="dot" style="background:var(--common)"></i> Common (every call)</span>
+    <span><i class="dot" style="background:var(--form)"></i> On the printed form</span>
+    <span><i class="dot" style="background:var(--add)"></i> Provincial, not on form</span>
+    <span><i class="dot" style="background:var(--local)"></i> Local sheet only</span>
+  </div>
+</div>
+
+<!-- Queue dock (appears when items are selected) -->
+<div class="dock" id="dock" hidden>
+  <button class="dock-main" id="viewListBtn">
+    <span class="dock-count" id="dockCount">0</span>
+    <span>View list</span>
+  </button>
+  <button class="dock-clear" id="dockClear">Clear</button>
+</div>
+
+<!-- Ordered list / transcription view -->
+<div class="sheet" id="queueView" hidden>
+  <div class="sheet-bar">
+    <button class="sheet-back" id="addMoreBtn" aria-label="Back to search">&larr; Add more</button>
+    <h2 id="queueTitle">Your codes</h2>
+    <button class="sheet-clear" id="sheetClear">Clear all</button>
+  </div>
+  <div class="sheet-body" id="queueList"></div>
+  <div class="sheet-foot">
+    <div class="sheet-foot-inner">
+      <button class="foot-btn" id="copyListBtn">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+        Copy to clipboard
+      </button>
+      <button class="foot-btn primary" id="shareListBtn" hidden>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>
+        Share
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast" hidden><span id="toastMsg"></span><button id="toastUndo" hidden>Undo</button></div>
+
+<!-- Hospital codes popup -->
+<div class="overlay" id="overlay">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-head">
+      <div class="mh-left">
+        <button class="modal-back" id="modalBack" aria-label="Back" hidden>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <h2 id="modalTitle">Quick reference</h2>
+      </div>
+      <button class="x" id="closeModal" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+const DATA = [{"c": "00", "t": "At Base", "cat": "Status Codes", "src": "form", "common": false, "ord": 999}, {"c": "77", "t": "Mobile", "cat": "Status Codes", "src": "form", "common": false, "ord": 999}, {"c": "88", "t": "Standby Location", "cat": "Status Codes", "src": "form", "common": false, "ord": 999}, {"c": "99", "t": "Maintenance", "cat": "Status Codes", "src": "form", "common": false, "ord": 999}, {"c": "1", "t": "Deferrable", "cat": "Dispatch Priority Codes", "src": "form", "common": false, "ord": 999}, {"c": "2", "t": "Scheduled", "cat": "Dispatch Priority Codes", "src": "form", "common": false, "ord": 999}, {"c": "3", "t": "Prompt", "cat": "Dispatch Priority Codes", "src": "form", "common": false, "ord": 999}, {"c": "4", "t": "Urgent", "cat": "Dispatch Priority Codes", "src": "form", "common": false, "ord": 999}, {"c": "8", "t": "Standby", "cat": "Dispatch Priority Codes", "src": "form", "common": false, "ord": 999}, {"c": "9", "t": "Out of Service/Administration", "cat": "Dispatch Priority Codes", "src": "form", "common": false, "ord": 999}, {"c": "1", "t": "Deferrable", "cat": "Return Priority Codes", "src": "form", "common": false, "ord": 999}, {"c": "2", "t": "Scheduled", "cat": "Return Priority Codes", "src": "form", "common": false, "ord": 999}, {"c": "3", "t": "Prompt", "cat": "Return Priority Codes", "src": "form", "common": false, "ord": 999}, {"c": "4", "t": "Urgent", "cat": "Return Priority Codes", "src": "form", "common": false, "ord": 999}, {"c": "6", "t": "Transport of Deceased Patient", "cat": "Return Priority Codes", "src": "form", "common": false, "ord": 999}, {"c": "71", "t": "No Patient Found", "cat": "Return Priority – No Transport", "src": "form", "common": false, "ord": 999}, {"c": "72", "t": "Patient Refused", "cat": "Return Priority – No Transport", "src": "form", "common": false, "ord": 999}, {"c": "73", "t": "Patient Deceased", "cat": "Return Priority – No Transport", "src": "form", "common": false, "ord": 999}, {"c": "74", "t": "Patient in Police Custody", "cat": "Return Priority – No Transport", "src": "form", "common": false, "ord": 999}, {"c": "75", "t": "Transported by Other Ambulance", "cat": "Return Priority – No Transport", "src": "form", "common": false, "ord": 999}, {"c": "8", "t": "Standby", "cat": "Return Priority – No Transport", "src": "form", "common": false, "ord": 999}, {"c": "9", "t": "Out of Service/Administration", "cat": "Return Priority – No Transport", "src": "form", "common": false, "ord": 999}, {"c": "01", "t": "Pt. Meets Trauma Criteria", "cat": "Special Transport Codes", "src": "form", "common": false, "ord": 999}, {"c": "02", "t": "No Trauma Bypass – Pt. Condition", "cat": "Special Transport Codes", "src": "form", "common": false, "ord": 999}, {"c": "03", "t": "No Trauma Bypass – Hospital Refusal", "cat": "Special Transport Codes", "src": "form", "common": false, "ord": 999}, {"c": "04", "t": "Pt. Meets Stroke Criteria", "cat": "Special Transport Codes", "src": "form", "common": false, "ord": 999}, {"c": "05", "t": "No Stroke Bypass – Pt. Condition", "cat": "Special Transport Codes", "src": "form", "common": false, "ord": 999}, {"c": "06", "t": "No Stroke Bypass – Hospital Refusal", "cat": "Special Transport Codes", "src": "form", "common": false, "ord": 999}, {"c": "07", "t": "Pt. Meets STEMI Criteria", "cat": "Special Transport Codes", "src": "form", "common": false, "ord": 999}, {"c": "08", "t": "No STEMI Bypass – Pt. Condition", "cat": "Special Transport Codes", "src": "form", "common": false, "ord": 999}, {"c": "09", "t": "No STEMI Bypass – Hospital Refusal", "cat": "Special Transport Codes", "src": "form", "common": false, "ord": 999}, {"c": "A", "t": "Airport/Heliport", "cat": "Pick-up Codes", "src": "form", "common": false, "ord": 999}, {"c": "B", "t": "Apartment/Condo. Building", "cat": "Pick-up Codes", "src": "form", "common": false, "ord": 999}, {"c": "C", "t": "Construction Site", "cat": "Pick-up Codes", "src": "form", "common": false, "ord": 999}, {"c": "D", "t": "Medical Office/Clinic", "cat": "Pick-up Codes", "src": "form", "common": false, "ord": 999}, {"c": "E", "t": "Nursing Outpost", "cat": "Pick-up Codes", "src": "form", "common": false, "ord": 999}, {"c": "F", "t": "Factory/Industrial Site/Railway/Dockyard", "cat": "Pick-up Codes", "src": "form", "common": false, "ord": 999}, {"c": "G", "t": "Hotel", "cat": "Pick-up Codes", "src": "form", "common": false, "ord": 999}, {"c": "H", "t": "Hospital (Acute and Non-Acute)", "cat": "Pick-up Codes", "src": "form", "common": false, "ord": 999}, {"c": "I", "t": "Indoor Shopping Mall", "cat": "Pick-up Codes", "src": "form", "common": false, "ord": 999}, {"c": "J", "t": "Jail/Prison", "cat": "Pick-up Codes", "src": "form", "common": false, "ord": 999}, {"c": "K", "t": "Single Store/Strip Mall", "cat": "Pick-up Codes", "src": "form", "common": false, "ord": 999}, {"c": "L", "t": "School/College/University", "cat": "Pick-up Codes", "src": "form", "common": false, "ord": 999}, {"c": "M", "t": "Mining Site/Quarry", "cat": "Pick-up Codes", "src": "form", "common": false, "ord": 999}, {"c": "N", "t": "Long-Term Care Home", "cat": "Pick-up Codes", "src": "form", "common": false, "ord": 999}, {"c": "O", "t": "Office Building", "cat": "Pick-up Codes", "src": "form", "common": false, "ord": 999}, {"c": "P", "t": "Sports Facility/Arena", "cat": "Pick-up Codes", "src": "form", "common": false, "ord": 999}, {"c": "Q", "t": "Farm", "cat": "Pick-up Codes", "src": "form", "common": false, "ord": 999}, {"c": "R", "t": "House/Town House", "cat": "Pick-up Codes", "src": "form", "common": false, "ord": 999}, {"c": "S", "t": "Street/Highway/Road", "cat": "Pick-up Codes", "src": "form", "common": false, "ord": 999}, {"c": "T", "t": "Fairground/Park", "cat": "Pick-up Codes", "src": "form", "common": false, "ord": 999}, {"c": "U", "t": "Retirement Home", "cat": "Pick-up Codes", "src": "form", "common": false, "ord": 999}, {"c": "V", "t": "Golf Course", "cat": "Pick-up Codes", "src": "form", "common": false, "ord": 999}, {"c": "W", "t": "Water/Boat", "cat": "Pick-up Codes", "src": "form", "common": false, "ord": 999}, {"c": "X", "t": "Restaurant/Bar", "cat": "Pick-up Codes", "src": "form", "common": false, "ord": 999}, {"c": "Y", "t": "Casino", "cat": "Pick-up Codes", "src": "form", "common": false, "ord": 999}, {"c": "Z", "t": "Other (Describe in Remarks)", "cat": "Pick-up Codes", "src": "form", "common": false, "ord": 999}, {"c": "01", "t": "Cardiac/Medical", "cat": "Problem · VSA", "src": "form", "common": false, "ord": 999}, {"c": "02", "t": "Traumatic", "cat": "Problem · VSA", "src": "form", "common": false, "ord": 999}, {"c": "11", "t": "Obstruction (Partial/Complete)", "cat": "Problem · Airway", "src": "form", "common": false, "ord": 999}, {"c": "21", "t": "Dyspnea", "cat": "Problem · Breathing", "src": "form", "common": false, "ord": 999}, {"c": "24", "t": "Respiratory Arrest", "cat": "Problem · Breathing", "src": "form", "common": false, "ord": 999}, {"c": "31", "t": "Hemorrhage", "cat": "Problem · Circulation", "src": "form", "common": false, "ord": 999}, {"c": "33", "t": "Hypotension", "cat": "Problem · Circulation", "src": "form", "common": false, "ord": 999}, {"c": "34", "t": "Suspected Sepsis", "cat": "Problem · Circulation", "src": "form", "common": false, "ord": 999}, {"c": "41", "t": "Stroke/TIA", "cat": "Problem · Neurological", "src": "form", "common": false, "ord": 999}, {"c": "42", "t": "Temp. Loss of Consciousness", "cat": "Problem · Neurological", "src": "form", "common": false, "ord": 999}, {"c": "43", "t": "Altered Level of Consciousness", "cat": "Problem · Neurological", "src": "form", "common": false, "ord": 999}, {"c": "44", "t": "Headache", "cat": "Problem · Neurological", "src": "form", "common": false, "ord": 999}, {"c": "45", "t": "Behaviour/Psychiatric", "cat": "Problem · Neurological", "src": "form", "common": false, "ord": 999}, {"c": "46", "t": "Active Seizure", "cat": "Problem · Neurological", "src": "form", "common": false, "ord": 999}, {"c": "47", "t": "Paralysis/Spinal Trauma", "cat": "Problem · Neurological", "src": "form", "common": false, "ord": 999}, {"c": "48", "t": "Confusion/Disorientation", "cat": "Problem · Neurological", "src": "form", "common": false, "ord": 999}, {"c": "49", "t": "Unconscious", "cat": "Problem · Neurological", "src": "form", "common": false, "ord": 999}, {"c": "50", "t": "Post-ictal", "cat": "Problem · Neurological", "src": "form", "common": false, "ord": 999}, {"c": "51", "t": "Ischemic", "cat": "Problem · Cardiac", "src": "form", "common": false, "ord": 999}, {"c": "53", "t": "Palpitations", "cat": "Problem · Cardiac", "src": "form", "common": false, "ord": 999}, {"c": "54", "t": "Pulmonary Edema", "cat": "Problem · Cardiac", "src": "form", "common": false, "ord": 999}, {"c": "55", "t": "Post Arrest", "cat": "Problem · Cardiac", "src": "form", "common": false, "ord": 999}, {"c": "56", "t": "Cardiogenic Shock", "cat": "Problem · Cardiac", "src": "form", "common": false, "ord": 999}, {"c": "57", "t": "STEMI", "cat": "Problem · Cardiac", "src": "form", "common": false, "ord": 999}, {"c": "58", "t": "Hyperkalemia", "cat": "Problem · Cardiac", "src": "form", "common": false, "ord": 999}, {"c": "60", "t": "Non Ischemic Chest Pain", "cat": "Problem · Non-Traumatic", "src": "form", "common": false, "ord": 999}, {"c": "61", "t": "Abdominal/Pelvic/Perineal/Rectal Pain", "cat": "Problem · Non-Traumatic", "src": "form", "common": false, "ord": 999}, {"c": "62", "t": "Back Pain", "cat": "Problem · Non-Traumatic", "src": "form", "common": false, "ord": 999}, {"c": "63", "t": "Nausea/Vomiting/Diarrhea", "cat": "Problem · Gastrointestinal", "src": "form", "common": false, "ord": 999}, {"c": "66", "t": "Musculoskeletal", "cat": "Problem · Musculoskeletal/Trauma", "src": "form", "common": false, "ord": 999}, {"c": "67", "t": "Trauma/Injury", "cat": "Problem · Musculoskeletal/Trauma", "src": "form", "common": false, "ord": 999}, {"c": "71", "t": "Obstetrical Emergency", "cat": "Problem · Obstetrical/Gynecological", "src": "form", "common": false, "ord": 999}, {"c": "72", "t": "Gynecological Emergency", "cat": "Problem · Obstetrical/Gynecological", "src": "form", "common": false, "ord": 999}, {"c": "73", "t": "Newborn/Neonatal", "cat": "Problem · Obstetrical/Gynecological", "src": "form", "common": false, "ord": 999}, {"c": "81", "t": "Drug/Alcohol Overdose", "cat": "Problem · Endocrine/Toxicological", "src": "form", "common": false, "ord": 999}, {"c": "82", "t": "Poisoning/Toxic Exposure", "cat": "Problem · Endocrine/Toxicological", "src": "form", "common": false, "ord": 999}, {"c": "83", "t": "Diabetic Emergency", "cat": "Problem · Endocrine/Toxicological", "src": "form", "common": false, "ord": 999}, {"c": "84", "t": "Allergic Reaction", "cat": "Problem · Endocrine/Toxicological", "src": "form", "common": false, "ord": 999}, {"c": "85", "t": "Anaphylaxis", "cat": "Problem · Endocrine/Toxicological", "src": "form", "common": false, "ord": 999}, {"c": "86", "t": "Adrenal Crisis", "cat": "Problem · Endocrine/Toxicological", "src": "form", "common": false, "ord": 999}, {"c": "87", "t": "Novel Medications", "cat": "Problem · General and Minor", "src": "form", "common": false, "ord": 999}, {"c": "88", "t": "Home Medical Technology", "cat": "Problem · General and Minor", "src": "form", "common": false, "ord": 999}, {"c": "89", "t": "Lift Assist", "cat": "Problem · General and Minor", "src": "form", "common": false, "ord": 999}, {"c": "90", "t": "Inter-facility Transfer", "cat": "Problem · General and Minor", "src": "form", "common": false, "ord": 999}, {"c": "91", "t": "Environmental Emergency", "cat": "Problem · General and Minor", "src": "form", "common": false, "ord": 999}, {"c": "92", "t": "Weakness/Dizziness/Unwell", "cat": "Problem · General and Minor", "src": "form", "common": false, "ord": 999}, {"c": "93", "t": "Treatment/Diagnosis & Return Home", "cat": "Problem · General and Minor", "src": "form", "common": false, "ord": 999}, {"c": "94", "t": "Convalescent/Invalid/Return Home", "cat": "Problem · General and Minor", "src": "form", "common": false, "ord": 999}, {"c": "95", "t": "Infectious Disease", "cat": "Problem · General and Minor", "src": "form", "common": false, "ord": 999}, {"c": "96", "t": "Organ Retrieval/Transfer", "cat": "Problem · General and Minor", "src": "form", "common": false, "ord": 999}, {"c": "98", "t": "Organ Recipient", "cat": "Problem · General and Minor", "src": "form", "common": false, "ord": 999}, {"c": "99", "t": "Other Medical/Trauma (see remarks)", "cat": "Problem · General and Minor", "src": "form", "common": false, "ord": 999}, {"c": "10", "t": "Head/Face/Ear/Scalp", "cat": "Site/Type · A Location", "src": "form", "common": false, "ord": 999}, {"c": "11", "t": "Eye", "cat": "Site/Type · A Location", "src": "form", "common": false, "ord": 999}, {"c": "12", "t": "Neck", "cat": "Site/Type · A Location", "src": "form", "common": false, "ord": 999}, {"c": "13", "t": "Shoulder", "cat": "Site/Type · A Location", "src": "form", "common": false, "ord": 999}, {"c": "14", "t": "Back/Flank", "cat": "Site/Type · A Location", "src": "form", "common": false, "ord": 999}, {"c": "15", "t": "Chest", "cat": "Site/Type · A Location", "src": "form", "common": false, "ord": 999}, {"c": "16", "t": "Abdomen", "cat": "Site/Type · A Location", "src": "form", "common": false, "ord": 999}, {"c": "17", "t": "Pelvis", "cat": "Site/Type · A Location", "src": "form", "common": false, "ord": 999}, {"c": "18", "t": "Genitourinary", "cat": "Site/Type · A Location", "src": "form", "common": false, "ord": 999}, {"c": "19", "t": "Buttocks/Perineum/Rectum", "cat": "Site/Type · A Location", "src": "form", "common": false, "ord": 999}, {"c": "20", "t": "Arm (Upper/Elbow/Forearm/Wrist)", "cat": "Site/Type · A Location", "src": "form", "common": false, "ord": 999}, {"c": "21", "t": "Hand/Finger", "cat": "Site/Type · A Location", "src": "form", "common": false, "ord": 999}, {"c": "22", "t": "Thigh", "cat": "Site/Type · A Location", "src": "form", "common": false, "ord": 999}, {"c": "23", "t": "Leg (Knee/Lower Leg/Ankle)", "cat": "Site/Type · A Location", "src": "form", "common": false, "ord": 999}, {"c": "24", "t": "Foot/Toes", "cat": "Site/Type · A Location", "src": "form", "common": false, "ord": 999}, {"c": "25", "t": "Hip", "cat": "Site/Type · A Location", "src": "form", "common": false, "ord": 999}, {"c": "30", "t": "Abrasion", "cat": "Site/Type · B Type", "src": "form", "common": false, "ord": 999}, {"c": "31", "t": "Amputation", "cat": "Site/Type · B Type", "src": "form", "common": false, "ord": 999}, {"c": "32", "t": "Avulsion", "cat": "Site/Type · B Type", "src": "form", "common": false, "ord": 999}, {"c": "33", "t": "Burn", "cat": "Site/Type · B Type", "src": "form", "common": false, "ord": 999}, {"c": "34", "t": "Blunt", "cat": "Site/Type · B Type", "src": "form", "common": false, "ord": 999}, {"c": "35", "t": "Crush", "cat": "Site/Type · B Type", "src": "form", "common": false, "ord": 999}, {"c": "36", "t": "Contusion", "cat": "Site/Type · B Type", "src": "form", "common": false, "ord": 999}, {"c": "37", "t": "Penetrating/Perforation", "cat": "Site/Type · B Type", "src": "form", "common": false, "ord": 999}, {"c": "38", "t": "Possible Fracture/Dislocation", "cat": "Site/Type · B Type", "src": "form", "common": false, "ord": 999}, {"c": "39", "t": "Laceration", "cat": "Site/Type · B Type", "src": "form", "common": false, "ord": 999}, {"c": "40", "t": "Sprain/Strain", "cat": "Site/Type · B Type", "src": "form", "common": false, "ord": 999}, {"c": "41", "t": "Paralysis/Paresthesia", "cat": "Site/Type · B Type", "src": "form", "common": false, "ord": 999}, {"c": "42", "t": "Other (Detail in Incident Hx)", "cat": "Site/Type · B Type", "src": "form", "common": false, "ord": 999}, {"c": "50", "t": "Assault", "cat": "Site/Type · C Mechanism", "src": "form", "common": false, "ord": 999}, {"c": "51", "t": "Drowning", "cat": "Site/Type · C Mechanism", "src": "form", "common": false, "ord": 999}, {"c": "52", "t": "Electrocution", "cat": "Site/Type · C Mechanism", "src": "form", "common": false, "ord": 999}, {"c": "53", "t": "Fall (Same Level)", "cat": "Site/Type · C Mechanism", "src": "form", "common": false, "ord": 999}, {"c": "54", "t": "Fall from Height/Diving", "cat": "Site/Type · C Mechanism", "src": "form", "common": false, "ord": 999}, {"c": "55", "t": "Gunshot", "cat": "Site/Type · C Mechanism", "src": "form", "common": false, "ord": 999}, {"c": "56", "t": "Hanging", "cat": "Site/Type · C Mechanism", "src": "form", "common": false, "ord": 999}, {"c": "57", "t": "Machinery", "cat": "Site/Type · C Mechanism", "src": "form", "common": false, "ord": 999}, {"c": "58", "t": "MVC", "cat": "Site/Type · C Mechanism", "src": "form", "common": false, "ord": 999}, {"c": "59", "t": "Motorcycle/Recreational Vehicle", "cat": "Site/Type · C Mechanism", "src": "form", "common": false, "ord": 999}, {"c": "60", "t": "Pedal Bicycle", "cat": "Site/Type · C Mechanism", "src": "form", "common": false, "ord": 999}, {"c": "61", "t": "Pedestrian Struck", "cat": "Site/Type · C Mechanism", "src": "form", "common": false, "ord": 999}, {"c": "62", "t": "Sports", "cat": "Site/Type · C Mechanism", "src": "form", "common": false, "ord": 999}, {"c": "63", "t": "Stabbing", "cat": "Site/Type · C Mechanism", "src": "form", "common": false, "ord": 999}, {"c": "64", "t": "Fire/Explosion/Thermal", "cat": "Site/Type · C Mechanism", "src": "form", "common": false, "ord": 999}, {"c": "65", "t": "Smoke/Chemical Exposure", "cat": "Site/Type · C Mechanism", "src": "form", "common": false, "ord": 999}, {"c": "66", "t": "Other (detail in Mechanism of Incident Hx)", "cat": "Site/Type · C Mechanism", "src": "form", "common": false, "ord": 999}, {"c": "10", "t": "Sinus Tachycardia", "cat": "Rhythm Codes", "src": "form", "common": true, "ord": 999}, {"c": "11", "t": "PSVT/SVT/Atrial Tachycardia", "cat": "Rhythm Codes", "src": "form", "common": false, "ord": 999}, {"c": "12", "t": "Atrial Flutter", "cat": "Rhythm Codes", "src": "form", "common": false, "ord": 999}, {"c": "13", "t": "Atrial Fibrillation", "cat": "Rhythm Codes", "src": "form", "common": true, "ord": 999}, {"c": "14", "t": "Ventricular Tachycardia", "cat": "Rhythm Codes", "src": "form", "common": false, "ord": 999}, {"c": "20", "t": "Sinus Bradycardia", "cat": "Rhythm Codes", "src": "form", "common": false, "ord": 999}, {"c": "21", "t": "First Degree Block", "cat": "Rhythm Codes", "src": "form", "common": false, "ord": 999}, {"c": "22", "t": "Second Degree Block", "cat": "Rhythm Codes", "src": "form", "common": false, "ord": 999}, {"c": "23", "t": "Third Degree Block", "cat": "Rhythm Codes", "src": "form", "common": false, "ord": 999}, {"c": "30", "t": "Ventricular Fibrillation", "cat": "Rhythm Codes", "src": "form", "common": false, "ord": 999}, {"c": "31", "t": "Pulseless Ventricular Tachycardia", "cat": "Rhythm Codes", "src": "form", "common": false, "ord": 999}, {"c": "32", "t": "PEA", "cat": "Rhythm Codes", "src": "form", "common": false, "ord": 999}, {"c": "33", "t": "Asystole", "cat": "Rhythm Codes", "src": "form", "common": false, "ord": 999}, {"c": "40", "t": "NSR", "cat": "Rhythm Codes", "src": "form", "common": true, "ord": 999}, {"c": "42", "t": "Paced Rhythm", "cat": "Rhythm Codes", "src": "form", "common": false, "ord": 999}, {"c": "43", "t": "Junctional Rhythm", "cat": "Rhythm Codes", "src": "form", "common": false, "ord": 999}, {"c": "44", "t": "Sinus Dysrhythmia", "cat": "Rhythm Codes", "src": "form", "common": false, "ord": 999}, {"c": "46", "t": "Other (Detail in Procedures)", "cat": "Rhythm Codes", "src": "form", "common": false, "ord": 999}, {"c": "010", "t": "Vital Signs", "cat": "Procedures", "src": "form", "common": true, "ord": 5}, {"c": "020", "t": "Patient Assessment", "cat": "Procedures", "src": "form", "common": true, "ord": 4}, {"c": "025", "t": "Blood Sampling-Glucose Determination", "cat": "Procedures", "src": "form", "common": true, "ord": 999}, {"c": "100", "t": "Dressing", "cat": "Procedures", "src": "form", "common": false, "ord": 999}, {"c": "101", "t": "Control Bleeding", "cat": "Procedures", "src": "form", "common": false, "ord": 999}, {"c": "102", "t": "Arterial Tourniquet", "cat": "Procedures", "src": "form", "common": false, "ord": 999}, {"c": "105", "t": "Immobilization-Head", "cat": "Procedures", "src": "form", "common": false, "ord": 999}, {"c": "110", "t": "Splint Other", "cat": "Procedures", "src": "form", "common": false, "ord": 999}, {"c": "111", "t": "Cervical Collar", "cat": "Procedures", "src": "form", "common": true, "ord": 999}, {"c": "112", "t": "Spinal Board", "cat": "Procedures", "src": "form", "common": false, "ord": 999}, {"c": "113", "t": "Spinal Immobilization Extrication Device", "cat": "Procedures", "src": "form", "common": false, "ord": 999}, {"c": "114", "t": "Traction Splint", "cat": "Procedures", "src": "form", "common": false, "ord": 999}, {"c": "115", "t": "Adjustable Break Away Stretcher", "cat": "Procedures", "src": "form", "common": false, "ord": 999}, {"c": "116", "t": "Lifting Chair", "cat": "Procedures", "src": "form", "common": true, "ord": 999}, {"c": "120", "t": "Suction", "cat": "Procedures", "src": "form", "common": false, "ord": 999}, {"c": "129", "t": "Oxygen – Filtered High Conc. Mask", "cat": "Procedures", "src": "form", "common": true, "ord": 999}, {"c": "130", "t": "Oxygen – High Conc. Mask", "cat": "Procedures", "src": "form", "common": false, "ord": 999}, {"c": "131", "t": "Oxygen – Simple Face Mask", "cat": "Procedures", "src": "form", "common": false, "ord": 999}, {"c": "132", "t": "Oxygen – Nasal Cannula", "cat": "Procedures", "src": "form", "common": true, "ord": 999}, {"c": "133", "t": "Oxygen – Other", "cat": "Procedures", "src": "form", "common": false, "ord": 999}, {"c": "141", "t": "Oxygen – BVM", "cat": "Procedures", "src": "form", "common": false, "ord": 999}, {"c": "142", "t": "Oxygen – Mechanical Ventilator", "cat": "Procedures", "src": "form", "common": false, "ord": 999}, {"c": "144", "t": "Oxygen – Pocket Mask", "cat": "Procedures", "src": "form", "common": false, "ord": 999}, {"c": "150", "t": "Extricate Patient – e.g., Remove from small room where care cannot be provided", "cat": "Procedures", "src": "form", "common": true, "ord": 9}, {"c": "160", "t": "OB Delivery", "cat": "Procedures", "src": "form", "common": false, "ord": 999}, {"c": "161", "t": "External Uterine Massage", "cat": "Procedures", "src": "form", "common": false, "ord": 999}, {"c": "162", "t": "Placental Delivery", "cat": "Procedures", "src": "form", "common": false, "ord": 999}, {"c": "163", "t": "Umbilical Cord Management", "cat": "Procedures", "src": "form", "common": false, "ord": 999}, {"c": "164", "t": "Apgar Score", "cat": "Procedures", "src": "form", "common": false, "ord": 999}, {"c": "170", "t": "Oro/Nasopharyngeal Airway", "cat": "Procedures", "src": "form", "common": false, "ord": 999}, {"c": "180", "t": "Restrain Patient-Physical", "cat": "Procedures", "src": "form", "common": false, "ord": 999}, {"c": "190", "t": "Abdo/Chest/Back Thrusts", "cat": "Procedures", "src": "form", "common": false, "ord": 999}, {"c": "211", "t": "Symptom Assist Medication (e.g., Assisted Pt. with own meds)", "cat": "Procedures", "src": "form", "common": false, "ord": 999}, {"c": "231", "t": "Pt. Transported Supine", "cat": "Procedures", "src": "form", "common": true, "ord": 12}, {"c": "232", "t": "Pt. Transported Semi-Prone", "cat": "Procedures", "src": "form", "common": false, "ord": 999}, {"c": "233", "t": "Pt. Transported Prone", "cat": "Procedures", "src": "form", "common": false, "ord": 999}, {"c": "234", "t": "Pt. Transported Semi-Sitting", "cat": "Procedures", "src": "form", "common": true, "ord": 10}, {"c": "235", "t": "Pt. Transported Sitting", "cat": "Procedures", "src": "form", "common": true, "ord": 11}, {"c": "236", "t": "Ambulatory", "cat": "Procedures", "src": "form", "common": true, "ord": 999}, {"c": "237", "t": "Pt. Transported Lateral", "cat": "Procedures", "src": "form", "common": false, "ord": 999}, {"c": "239", "t": "Infant Restraint Device", "cat": "Procedures", "src": "form", "common": false, "ord": 999}, {"c": "297", "t": "Therapeutic Hypothermia", "cat": "Cardiac Arrest Procedures", "src": "form", "common": false, "ord": 999}, {"c": "298", "t": "Defibrillation – Pads On", "cat": "Cardiac Arrest Procedures", "src": "form", "common": false, "ord": 999}, {"c": "299", "t": "Automated CPR Device", "cat": "Cardiac Arrest Procedures", "src": "form", "common": false, "ord": 999}, {"c": "300", "t": "CPR", "cat": "Cardiac Arrest Procedures", "src": "form", "common": false, "ord": 999}, {"c": "301", "t": "Rhythm Interpretation", "cat": "Cardiac Arrest Procedures", "src": "form", "common": true, "ord": 6}, {"c": "302", "t": "Cardioversion", "cat": "Cardiac Arrest Procedures", "src": "form", "common": false, "ord": 999}, {"c": "303", "t": "Valsalva Manoeuver", "cat": "Cardiac Arrest Procedures", "src": "form", "common": false, "ord": 999}, {"c": "306", "t": "Defibrillation – Manual", "cat": "Cardiac Arrest Procedures", "src": "form", "common": false, "ord": 999}, {"c": "307", "t": "Defibrillation – Semi-Automated", "cat": "Cardiac Arrest Procedures", "src": "form", "common": false, "ord": 999}, {"c": "308", "t": "Analyze – SAED", "cat": "Cardiac Arrest Procedures", "src": "form", "common": false, "ord": 999}, {"c": "309", "t": "External Pacing", "cat": "Cardiac Arrest Procedures", "src": "form", "common": false, "ord": 999}, {"c": "313", "t": "12-Lead Acquisition", "cat": "Cardiac Arrest Procedures", "src": "form", "common": true, "ord": 999}, {"c": "316", "t": "Return of Spontaneous Circulation", "cat": "Cardiac Arrest Procedures", "src": "form", "common": false, "ord": 999}, {"c": "317", "t": "Return of Spontaneous Respirations", "cat": "Airway/Breathing Procedures", "src": "form", "common": false, "ord": 999}, {"c": "318", "t": "Supraglottic/Alternate Airway", "cat": "Airway/Breathing Procedures", "src": "form", "common": false, "ord": 999}, {"c": "319", "t": "Supraglottic/Alternate Airway Unsuccessful", "cat": "Airway/Breathing Procedures", "src": "form", "common": false, "ord": 999}, {"c": "320", "t": "Needle Thoracostomy", "cat": "Airway/Breathing Procedures", "src": "form", "common": false, "ord": 999}, {"c": "321", "t": "Needle Thoracostomy Unsuccessful", "cat": "Airway/Breathing Procedures", "src": "form", "common": false, "ord": 999}, {"c": "322", "t": "Needle/Surgical Cricothyroidotomy", "cat": "Airway/Breathing Procedures", "src": "form", "common": false, "ord": 999}, {"c": "323", "t": "Needle/Surgical Cricothyroidotomy Unsuccessful", "cat": "Airway/Breathing Procedures", "src": "form", "common": false, "ord": 999}, {"c": "324", "t": "Nasotracheal Intubation", "cat": "Airway/Breathing Procedures", "src": "form", "common": false, "ord": 999}, {"c": "325", "t": "Nasotracheal Intubation Unsuccessful", "cat": "Airway/Breathing Procedures", "src": "form", "common": false, "ord": 999}, {"c": "326", "t": "Orotracheal Intubation", "cat": "Airway/Breathing Procedures", "src": "form", "common": false, "ord": 999}, {"c": "327", "t": "Orotracheal Intubation Unsuccessful", "cat": "Airway/Breathing Procedures", "src": "form", "common": false, "ord": 999}, {"c": "328", "t": "ETT Suctioning", "cat": "Airway/Breathing Procedures", "src": "form", "common": false, "ord": 999}, {"c": "329", "t": "Tracheostomy Tube Suctioning", "cat": "Airway/Breathing Procedures", "src": "form", "common": false, "ord": 999}, {"c": "331", "t": "Magill Forceps/Foreign Body Removal", "cat": "Airway/Breathing Procedures", "src": "form", "common": false, "ord": 999}, {"c": "332", "t": "Magill Forceps/Foreign Body Removal Unsuccessful", "cat": "Airway/Breathing Procedures", "src": "form", "common": false, "ord": 999}, {"c": "333", "t": "Extubation – Any Advanced Airway (Intentional)", "cat": "Airway/Breathing Procedures", "src": "form", "common": false, "ord": 999}, {"c": "334", "t": "Extubation – Any Advanced Airway (Unintentional)", "cat": "Airway/Breathing Procedures", "src": "form", "common": false, "ord": 999}, {"c": "335", "t": "Needle Thoracostomy One-way Valve Monitored", "cat": "Airway/Breathing Procedures", "src": "form", "common": false, "ord": 999}, {"c": "336", "t": "Respiratory System Eval. (ETCO2 and SAO2)", "cat": "Airway/Breathing Procedures", "src": "form", "common": false, "ord": 999}, {"c": "337", "t": "ETT Confirmation", "cat": "Airway/Breathing Procedures", "src": "form", "common": false, "ord": 999}, {"c": "338", "t": "SpO2", "cat": "Airway/Breathing Procedures", "src": "form", "common": false, "ord": 999}, {"c": "339", "t": "PEEP", "cat": "Airway/Breathing Procedures", "src": "form", "common": false, "ord": 999}, {"c": "380", "t": "Alternative Airway", "cat": "Airway/Breathing Procedures", "src": "form", "common": false, "ord": 999}, {"c": "381", "t": "Alternative Airway – Unsuccessful", "cat": "Airway/Breathing Procedures", "src": "form", "common": false, "ord": 999}, {"c": "382", "t": "Airway Adjunct/Bougie", "cat": "Airway/Breathing Procedures", "src": "form", "common": false, "ord": 999}, {"c": "383", "t": "CPAP", "cat": "Airway/Breathing Procedures", "src": "form", "common": false, "ord": 999}, {"c": "384", "t": "CPAP – unsuccessful", "cat": "Airway/Breathing Procedures", "src": "form", "common": false, "ord": 999}, {"c": "340", "t": "IV Monitoring", "cat": "IV Procedures", "src": "form", "common": false, "ord": 999}, {"c": "341", "t": "IV Cannulation", "cat": "IV Procedures", "src": "form", "common": true, "ord": 8}, {"c": "342", "t": "Lock", "cat": "IV Procedures", "src": "form", "common": false, "ord": 999}, {"c": "345", "t": "Normal Saline", "cat": "IV Procedures", "src": "form", "common": false, "ord": 999}, {"c": "349", "t": "Other IV Solutions", "cat": "IV Procedures", "src": "form", "common": false, "ord": 999}, {"c": "350", "t": "IV Cannulation Unsuccessful", "cat": "IV Procedures", "src": "form", "common": true, "ord": 999}, {"c": "351", "t": "Fluid Bolus", "cat": "IV Procedures", "src": "form", "common": false, "ord": 999}, {"c": "353", "t": "Blood Sampling", "cat": "IV Procedures", "src": "form", "common": false, "ord": 999}, {"c": "355", "t": "IV Discontinued (Intentional)", "cat": "IV Procedures", "src": "form", "common": false, "ord": 999}, {"c": "356", "t": "IV Discontinued (Unintentional)", "cat": "IV Procedures", "src": "form", "common": false, "ord": 999}, {"c": "358", "t": "Intraosseous Cannulation Successful", "cat": "IV Procedures", "src": "form", "common": false, "ord": 999}, {"c": "359", "t": "Intraosseous Cannulation Unsuccessful", "cat": "IV Procedures", "src": "form", "common": false, "ord": 999}, {"c": "360", "t": "Blood/Blood Product Administration", "cat": "IV Procedures", "src": "form", "common": false, "ord": 999}, {"c": "361", "t": "CVAD Access", "cat": "IV Procedures", "src": "form", "common": false, "ord": 999}, {"c": "366", "t": "Termination of Resuscitation – Medical", "cat": "Miscellaneous Procedures", "src": "form", "common": false, "ord": 999}, {"c": "367", "t": "Termination of Resuscitation – Trauma", "cat": "Miscellaneous Procedures", "src": "form", "common": false, "ord": 999}, {"c": "370", "t": "Other Procedure (Detail in Procedures)", "cat": "Miscellaneous Procedures", "src": "form", "common": true, "ord": 7}, {"c": "372", "t": "Carboxyhemoglobin (SpCO)", "cat": "Miscellaneous Procedures", "src": "form", "common": false, "ord": 999}, {"c": "375", "t": "Emerg. Dialysis Disconnect", "cat": "Miscellaneous Procedures", "src": "form", "common": false, "ord": 999}, {"c": "376", "t": "Electronic Control Device Removal", "cat": "Miscellaneous Procedures", "src": "form", "common": false, "ord": 999}, {"c": "390", "t": "Transfer of Care – Crew to Crew", "cat": "Miscellaneous Procedures", "src": "form", "common": true, "ord": 999}, {"c": "400", "t": "Base Hospital Physician Patch", "cat": "Miscellaneous Procedures", "src": "form", "common": false, "ord": 999}, {"c": "401", "t": "Receiving Hospital Notified", "cat": "Miscellaneous Procedures", "src": "form", "common": true, "ord": 999}, {"c": "402", "t": "BHP Patch Failure (Detail in Results)", "cat": "Miscellaneous Procedures", "src": "form", "common": false, "ord": 999}, {"c": "403", "t": "BHP Patch – No BHP Contact", "cat": "Miscellaneous Procedures", "src": "form", "common": false, "ord": 999}, {"c": "404", "t": "Coroner Notified", "cat": "Miscellaneous Procedures", "src": "form", "common": false, "ord": 999}, {"c": "405", "t": "Study Procedure (Detail in Procedures)", "cat": "Miscellaneous Procedures", "src": "form", "common": false, "ord": 999}, {"c": "406", "t": "Non Dialysis – CVAD Disconnect", "cat": "Miscellaneous Procedures", "src": "form", "common": false, "ord": 999}, {"c": "407", "t": "Health Screening (FREI) Tool", "cat": "Miscellaneous Procedures", "src": "form", "common": true, "ord": 0}, {"c": "498", "t": "Acetaminophen", "cat": "Medications", "src": "form", "common": false, "ord": 999}, {"c": "500", "t": "Adenosine", "cat": "Medications", "src": "form", "common": false, "ord": 999}, {"c": "502", "t": "Amiodarone", "cat": "Medications", "src": "form", "common": false, "ord": 999}, {"c": "503", "t": "Antibiotic", "cat": "Medications", "src": "form", "common": false, "ord": 999}, {"c": "504", "t": "ASA", "cat": "Medications", "src": "form", "common": false, "ord": 999}, {"c": "505", "t": "Atropine", "cat": "Medications", "src": "form", "common": false, "ord": 999}, {"c": "525", "t": "Calcium Gluconate", "cat": "Medications", "src": "form", "common": false, "ord": 999}, {"c": "528", "t": "Dextrose D10W", "cat": "Medications", "src": "form", "common": false, "ord": 999}, {"c": "529", "t": "Dextrose D25W", "cat": "Medications", "src": "form", "common": false, "ord": 999}, {"c": "530", "t": "Dextrose D50W", "cat": "Medications", "src": "form", "common": false, "ord": 999}, {"c": "531", "t": "Diazepam", "cat": "Medications", "src": "form", "common": false, "ord": 999}, {"c": "533", "t": "Dimenhydrinate", "cat": "Medications", "src": "form", "common": false, "ord": 999}, {"c": "534", "t": "Diphenhydramine", "cat": "Medications", "src": "form", "common": false, "ord": 999}, {"c": "536", "t": "Dopamine", "cat": "Medications", "src": "form", "common": false, "ord": 999}, {"c": "540", "t": "Epinephrine 1:1,000", "cat": "Medications", "src": "form", "common": false, "ord": 999}, {"c": "541", "t": "Epinephrine 1:10,000", "cat": "Medications", "src": "form", "common": false, "ord": 999}, {"c": "550", "t": "Fentanyl", "cat": "Medications", "src": "form", "common": false, "ord": 999}, {"c": "551", "t": "Furosemide", "cat": "Medications", "src": "form", "common": false, "ord": 999}, {"c": "560", "t": "Glucagon", "cat": "Medications", "src": "form", "common": false, "ord": 999}, {"c": "561", "t": "Glucose-Oral", "cat": "Medications", "src": "form", "common": false, "ord": 999}, {"c": "562", "t": "Hydroxocobalamin", "cat": "Medications", "src": "form", "common": false, "ord": 999}, {"c": "593", "t": "Lidocaine", "cat": "Medications", "src": "form", "common": false, "ord": 999}, {"c": "603", "t": "Midazolam", "cat": "Medications", "src": "form", "common": false, "ord": 999}, {"c": "604", "t": "Morphine", "cat": "Medications", "src": "form", "common": false, "ord": 999}, {"c": "610", "t": "Naloxone", "cat": "Medications", "src": "form", "common": false, "ord": 999}, {"c": "615", "t": "Nitroglycerin", "cat": "Medications", "src": "form", "common": false, "ord": 999}, {"c": "620", "t": "Oxytocin", "cat": "Medications", "src": "form", "common": false, "ord": 999}, {"c": "650", "t": "Salbutamol", "cat": "Medications", "src": "form", "common": false, "ord": 999}, {"c": "651", "t": "Sodium Bicarbonate", "cat": "Medications", "src": "form", "common": false, "ord": 999}, {"c": "682", "t": "Xylometazoline", "cat": "Medications", "src": "form", "common": false, "ord": 999}, {"c": "700", "t": "Other Drugs – Detail in Procedures", "cat": "Medications", "src": "form", "common": false, "ord": 999}, {"c": "701", "t": "Anaesthetic Eye Drops", "cat": "Medications", "src": "form", "common": false, "ord": 999}, {"c": "704", "t": "Ibuprofen", "cat": "Medications", "src": "form", "common": false, "ord": 999}, {"c": "706", "t": "Ketorolac", "cat": "Medications", "src": "form", "common": false, "ord": 999}, {"c": "708", "t": "Obidoxime", "cat": "Medications", "src": "form", "common": false, "ord": 999}, {"c": "710", "t": "Pralidoxime Chloride", "cat": "Medications", "src": "form", "common": false, "ord": 999}, {"c": "711", "t": "Hydrocortisone", "cat": "Medications", "src": "form", "common": false, "ord": 999}, {"c": "712", "t": "Sodium Thiosulfate", "cat": "Medications", "src": "form", "common": false, "ord": 999}, {"c": "800-899", "t": "Study Drugs – Details in Procedures", "cat": "Medications", "src": "form", "common": false, "ord": 999}, {"c": "900-999", "t": "User Defined", "cat": "Medications", "src": "form", "common": false, "ord": 999}, {"c": "AE", "t": "Aerosol", "cat": "Routes of Administration", "src": "form", "common": false, "ord": 999}, {"c": "BU", "t": "Buccal", "cat": "Routes of Administration", "src": "form", "common": false, "ord": 999}, {"c": "ET", "t": "Endotracheal", "cat": "Routes of Administration", "src": "form", "common": false, "ord": 999}, {"c": "IM", "t": "Intramuscular", "cat": "Routes of Administration", "src": "form", "common": false, "ord": 999}, {"c": "IN", "t": "Intranasal", "cat": "Routes of Administration", "src": "form", "common": false, "ord": 999}, {"c": "IO", "t": "Intraosseous", "cat": "Routes of Administration", "src": "form", "common": false, "ord": 999}, {"c": "IV", "t": "Intravenous", "cat": "Routes of Administration", "src": "form", "common": false, "ord": 999}, {"c": "NB", "t": "Nebulized", "cat": "Routes of Administration", "src": "form", "common": false, "ord": 999}, {"c": "PO", "t": "Oral", "cat": "Routes of Administration", "src": "form", "common": false, "ord": 999}, {"c": "PR", "t": "Rectal", "cat": "Routes of Administration", "src": "form", "common": false, "ord": 999}, {"c": "SL", "t": "Sublingual", "cat": "Routes of Administration", "src": "form", "common": false, "ord": 999}, {"c": "SC", "t": "Subcutaneous", "cat": "Routes of Administration", "src": "form", "common": false, "ord": 999}, {"c": "TO", "t": "Topical", "cat": "Routes of Administration", "src": "form", "common": false, "ord": 999}, {"c": "1", "t": "Student", "cat": "Paramedic Designation", "src": "form", "common": false, "ord": 999}, {"c": "2", "t": "EMA", "cat": "Paramedic Designation", "src": "form", "common": false, "ord": 999}, {"c": "3", "t": "PCP", "cat": "Paramedic Designation", "src": "form", "common": false, "ord": 999}, {"c": "4", "t": "ACP", "cat": "Paramedic Designation", "src": "form", "common": false, "ord": 999}, {"c": "5", "t": "CCP", "cat": "Paramedic Designation", "src": "form", "common": false, "ord": 999}, {"c": "1", "t": "Resuscitation", "cat": "CTAS Codes", "src": "form", "common": false, "ord": 999}, {"c": "2", "t": "Emergent", "cat": "CTAS Codes", "src": "form", "common": false, "ord": 999}, {"c": "3", "t": "Urgent", "cat": "CTAS Codes", "src": "form", "common": false, "ord": 999}, {"c": "4", "t": "Less Urgent", "cat": "CTAS Codes", "src": "form", "common": false, "ord": 999}, {"c": "5", "t": "Non Urgent", "cat": "CTAS Codes", "src": "form", "common": false, "ord": 999}, {"c": "0", "t": "Obviously Dead/TOR", "cat": "CTAS Codes", "src": "form", "common": false, "ord": 999}, {"c": "22", "t": "Receiving Facility", "cat": "Status", "src": "web", "common": false, "ord": 999}, {"c": "44", "t": "On-Call", "cat": "Status", "src": "web", "common": false, "ord": 999}, {"c": "P", "t": "Purple – emergent, immediate life-threatening", "cat": "Dispatch Priority (MPDS)", "src": "web", "common": false, "ord": 999}, {"c": "R", "t": "Red – emergent, potentially life-threatening", "cat": "Dispatch Priority (MPDS)", "src": "web", "common": false, "ord": 999}, {"c": "O", "t": "Orange – urgent, potentially serious", "cat": "Dispatch Priority (MPDS)", "src": "web", "common": false, "ord": 999}, {"c": "Y", "t": "Yellow – non-urgent, not serious", "cat": "Dispatch Priority (MPDS)", "src": "web", "common": false, "ord": 999}, {"c": "G", "t": "Green – non-urgent, deferrable", "cat": "Dispatch Priority (MPDS)", "src": "web", "common": false, "ord": 999}, {"c": "SBY", "t": "Incident Standby", "cat": "Dispatch Priority (MPDS)", "src": "web", "common": false, "ord": 999}, {"c": "CTAS 0", "t": "Obviously Dead/TOR", "cat": "Return Priority", "src": "web", "common": false, "ord": 999}, {"c": "CTAS 1", "t": "Resuscitation", "cat": "Return Priority", "src": "web", "common": false, "ord": 999}, {"c": "CTAS 2", "t": "Emergent", "cat": "Return Priority", "src": "web", "common": false, "ord": 999}, {"c": "CTAS 3", "t": "Urgent", "cat": "Return Priority", "src": "web", "common": false, "ord": 999}, {"c": "CTAS 4", "t": "Less Urgent", "cat": "Return Priority", "src": "web", "common": false, "ord": 999}, {"c": "CTAS 5", "t": "Non Urgent", "cat": "Return Priority", "src": "web", "common": false, "ord": 999}, {"c": "77", "t": "Referred", "cat": "Return Priority – No Transport", "src": "web", "common": false, "ord": 999}, {"c": "77.01", "t": "Referred – Palliative Care", "cat": "Return Priority – No Transport", "src": "web", "common": false, "ord": 999}, {"c": "77.03", "t": "Referred – Mental Health and Addictions", "cat": "Return Priority – No Transport", "src": "web", "common": false, "ord": 999}, {"c": "77.04", "t": "Referred – Non-Emergent", "cat": "Return Priority – No Transport", "src": "web", "common": false, "ord": 999}, {"c": "77.05", "t": "Referred – Non-Emergent LTC", "cat": "Return Priority – No Transport", "src": "web", "common": false, "ord": 999}, {"c": "78", "t": "Discharge", "cat": "Return Priority – No Transport", "src": "web", "common": false, "ord": 999}, {"c": "78.01", "t": "Discharged – Hypoglycemia", "cat": "Return Priority – No Transport", "src": "web", "common": false, "ord": 999}, {"c": "78.02", "t": "Discharged – Seizure", "cat": "Return Priority – No Transport", "src": "web", "common": false, "ord": 999}, {"c": "78.03", "t": "Discharged – Tachydysrhythmia", "cat": "Return Priority – No Transport", "src": "web", "common": false, "ord": 999}, {"c": "78.04", "t": "Discharged – COVID-19", "cat": "Return Priority – No Transport", "src": "web", "common": false, "ord": 999}, {"c": "78.05", "t": "Discharged – Mental Health and Addictions", "cat": "Return Priority – No Transport", "src": "web", "common": false, "ord": 999}, {"c": "78.06", "t": "Discharged – Non-Emergent", "cat": "Return Priority – No Transport", "src": "web", "common": false, "ord": 999}, {"c": "78.07", "t": "Discharged – Non-Emergent LTC", "cat": "Return Priority – No Transport", "src": "web", "common": false, "ord": 999}, {"c": "10", "t": "Palliative Care Patient Transported to Hospice/Hospital", "cat": "Special Transport", "src": "web", "common": false, "ord": 999}, {"c": "11", "t": "CMHA Middlesex Crisis Centre – 1502CC", "cat": "Special Transport", "src": "web", "common": false, "ord": 999}, {"c": "30", "t": "Specialized Team Transfer with Patient", "cat": "Special Transport", "src": "web", "common": false, "ord": 999}, {"c": "31", "t": "Specialized Team Transfer without Patient", "cat": "Special Transport", "src": "web", "common": false, "ord": 999}, {"c": "32", "t": "Hypertension", "cat": "Problem Codes", "src": "web", "common": false, "ord": 999}, {"c": "40", "t": "Traumatic Brain Injury", "cat": "Problem Codes", "src": "web", "common": false, "ord": 999}, {"c": "45.01", "t": "Excited Delirium", "cat": "Problem Codes", "src": "web", "common": false, "ord": 999}, {"c": "61.1", "t": "Renal Colic", "cat": "Problem Codes", "src": "web", "common": false, "ord": 999}, {"c": "61.2", "t": "Suspected UTI", "cat": "Problem Codes", "src": "web", "common": false, "ord": 999}, {"c": "65", "t": "Integumentary", "cat": "Problem Codes", "src": "web", "common": false, "ord": 999}, {"c": "65.1", "t": "Skin Tear", "cat": "Problem Codes", "src": "web", "common": false, "ord": 999}, {"c": "81.1", "t": "Suspected Opioid Overdose", "cat": "Problem Codes", "src": "web", "common": false, "ord": 999}, {"c": "99.15", "t": "No Complaint", "cat": "Problem Codes", "src": "web", "common": false, "ord": 999}, {"c": "1 / 001", "t": "Clinical Note", "cat": "Procedures", "src": "web", "common": false, "ord": 999}, {"c": "20.01", "t": "LAMS Assessment Score", "cat": "Procedures", "src": "web", "common": false, "ord": 999}, {"c": "20.02", "t": "Acute Stroke Protocol Assessment", "cat": "Procedures", "src": "web", "common": false, "ord": 999}, {"c": "20.03", "t": "Clinical Opiate Withdraw Scale (COWS)", "cat": "Procedures", "src": "web", "common": false, "ord": 999}, {"c": "20.04", "t": "Point-of-Care Risk Assessment", "cat": "Procedures", "src": "web", "common": false, "ord": 999}, {"c": "100.01", "t": "Hemostatic Dressing", "cat": "Procedures", "src": "web", "common": false, "ord": 999}, {"c": "100.02", "t": "Occlusive Dressing", "cat": "Procedures", "src": "web", "common": false, "ord": 999}, {"c": "100.03", "t": "Post-Op Dressing", "cat": "Procedures", "src": "web", "common": false, "ord": 999}, {"c": "100.04", "t": "Povidone Iodine Dressing", "cat": "Procedures", "src": "web", "common": false, "ord": 999}, {"c": "100.05", "t": "Tissue Adhesive", "cat": "Procedures", "src": "web", "common": false, "ord": 999}, {"c": "100.06", "t": "Reinforced Skin Closure Strip", "cat": "Procedures", "src": "web", "common": false, "ord": 999}, {"c": "100.07", "t": "Fixation Sheet", "cat": "Procedures", "src": "web", "common": false, "ord": 999}, {"c": "100.08", "t": "Non-Adherent Dressing", "cat": "Procedures", "src": "web", "common": false, "ord": 999}, {"c": "109", "t": "Reduction", "cat": "Procedures", "src": "web", "common": false, "ord": 999}, {"c": "109.01", "t": "Patellar Reduction", "cat": "Procedures", "src": "web", "common": false, "ord": 999}, {"c": "110.01", "t": "Pelvic binder device", "cat": "Procedures", "src": "web", "common": false, "ord": 999}, {"c": "116.01", "t": "Power Lifting Chair", "cat": "Procedures", "src": "web", "common": false, "ord": 999}, {"c": "117", "t": "Patient Lifting Device", "cat": "Procedures", "src": "web", "common": false, "ord": 999}, {"c": "117.01", "t": "Powered Lifting Device", "cat": "Procedures", "src": "web", "common": false, "ord": 999}, {"c": "120.1", "t": "Gastric Port Suctioning", "cat": "Procedures", "src": "web", "common": false, "ord": 999}, {"c": "141.1", "t": "Manual Ventilation Feedback Device", "cat": "Procedures", "src": "web", "common": false, "ord": 999}, {"c": "160.01", "t": "Delivery of Head", "cat": "Procedures", "src": "web", "common": false, "ord": 999}, {"c": "160.02", "t": "Delivery of Umbilicus", "cat": "Procedures", "src": "web", "common": false, "ord": 999}, {"c": "161.01", "t": "External Bimanual Compression", "cat": "Procedures", "src": "web", "common": false, "ord": 999}, {"c": "165", "t": "Nuchal Cord", "cat": "Procedures", "src": "web", "common": false, "ord": 999}, {"c": "165.01", "t": "Removal of Nuchal Cord", "cat": "Procedures", "src": "web", "common": false, "ord": 999}, {"c": "166", "t": "Shoulder Dystocia", "cat": "Procedures", "src": "web", "common": false, "ord": 999}, {"c": "166.01", "t": "McRoberts Maneuver", "cat": "Procedures", "src": "web", "common": false, "ord": 999}, {"c": "166.02", "t": "Apply Suprapubic Pressure", "cat": "Procedures", "src": "web", "common": false, "ord": 999}, {"c": "166.03", "t": "Gaskin Maneuver", "cat": "Procedures", "src": "web", "common": false, "ord": 999}, {"c": "167", "t": "Breech Presentation", "cat": "Procedures", "src": "web", "common": false, "ord": 999}, {"c": "167.01", "t": "Manual Release of Limbs", "cat": "Procedures", "src": "web", "common": false, "ord": 999}, {"c": "167.02", "t": "Mauriceau Smellie Veit Manoeuver", "cat": "Procedures", "src": "web", "common": false, "ord": 999}, {"c": "168", "t": "Prolapsed Cord Management", "cat": "Procedures", "src": "web", "common": false, "ord": 999}, {"c": "181", "t": "Spit Hood Application", "cat": "Procedures", "src": "web", "common": false, "ord": 999}, {"c": "238", "t": "Pt. Transported in Isolette", "cat": "Procedures", "src": "web", "common": false, "ord": 999}, {"c": "240", "t": "Knee Chest Position", "cat": "Procedures", "src": "web", "common": false, "ord": 999}, {"c": "241", "t": "Exaggerated Sims position", "cat": "Procedures", "src": "web", "common": false, "ord": 999}, {"c": "298.01", "t": "Pads Placement of AL", "cat": "Cardiac Procedures", "src": "web", "common": false, "ord": 999}, {"c": "298.02", "t": "Pads Placement of AP", "cat": "Cardiac Procedures", "src": "web", "common": false, "ord": 999}, {"c": "305", "t": "Defibrillation Dual Sequential", "cat": "Cardiac Procedures", "src": "web", "common": false, "ord": 999}, {"c": "313.1", "t": "15-Lead Acquisition", "cat": "Cardiac Procedures", "src": "web", "common": false, "ord": 999}, {"c": "314", "t": "Cardiac Monitor Disconnected", "cat": "Cardiac Procedures", "src": "web", "common": false, "ord": 999}, {"c": "330", "t": "Tracheostomy Tube Reinsertion", "cat": "Airway/Breathing", "src": "web", "common": false, "ord": 999}, {"c": "330.01", "t": "Tracheostomy Tube Reinsertion Unsuccessful", "cat": "Airway/Breathing", "src": "web", "common": false, "ord": 999}, {"c": "385", "t": "Oro/Nasopharyngeal Swab", "cat": "Airway/Breathing", "src": "web", "common": false, "ord": 999}, {"c": "386", "t": "Peak Flow Meter Testing", "cat": "Airway/Breathing", "src": "web", "common": false, "ord": 999}, {"c": "362", "t": "Subcutaneous Cannulation Successful", "cat": "IV Procedures", "src": "web", "common": false, "ord": 999}, {"c": "363", "t": "Subcutaneous Cannulation Unsuccessful", "cat": "IV Procedures", "src": "web", "common": false, "ord": 999}, {"c": "364", "t": "Subcutaneous Cannulation Discontinued (Intentional)", "cat": "IV Procedures", "src": "web", "common": false, "ord": 999}, {"c": "365", "t": "Subcutaneous Cannulation Discontinued (Unintentional)", "cat": "IV Procedures", "src": "web", "common": false, "ord": 999}, {"c": "368", "t": "Withhold Resuscitation Order", "cat": "Misc. Procedures", "src": "web", "common": false, "ord": 999}, {"c": "387", "t": "Patient Education", "cat": "Misc. Procedures", "src": "web", "common": false, "ord": 999}, {"c": "391", "t": "Triage Report", "cat": "Misc. Procedures", "src": "web", "common": true, "ord": 13}, {"c": "395", "t": "Aid to Capacity Assessment", "cat": "Misc. Procedures", "src": "web", "common": false, "ord": 999}, {"c": "396", "t": "Consent to Care Plan", "cat": "Misc. Procedures", "src": "web", "common": false, "ord": 999}, {"c": "401.1", "t": "Sepsis Pre-Alert / Notification", "cat": "Misc. Procedures", "src": "web", "common": false, "ord": 999}, {"c": "401.2", "t": "Trauma Notification", "cat": "Misc. Procedures", "src": "web", "common": false, "ord": 999}, {"c": "401.3", "t": "Stroke Notification", "cat": "Misc. Procedures", "src": "web", "common": false, "ord": 999}, {"c": "401.4", "t": "STEMI Notification", "cat": "Misc. Procedures", "src": "web", "common": false, "ord": 999}, {"c": "405.01", "t": "Consult – PCI Centre", "cat": "Misc. Procedures", "src": "web", "common": false, "ord": 999}, {"c": "405.02", "t": "Consult – Stroke Centre", "cat": "Misc. Procedures", "src": "web", "common": false, "ord": 999}, {"c": "405.03", "t": "Consult – Mental Health Professional", "cat": "Misc. Procedures", "src": "web", "common": false, "ord": 999}, {"c": "405.04", "t": "Consult – Patient's Healthcare Professional", "cat": "Misc. Procedures", "src": "web", "common": false, "ord": 999}, {"c": "407.1", "t": "Medication Administration Record (MAR) Received", "cat": "Misc. Procedures", "src": "web", "common": false, "ord": 999}, {"c": "407.02", "t": "COVID-19 Screening POSITIVE", "cat": "Misc. Procedures", "src": "web", "common": false, "ord": 999}, {"c": "407.03", "t": "COVID-19 Screening NEGATIVE", "cat": "Misc. Procedures", "src": "web", "common": false, "ord": 999}, {"c": "407.04", "t": "Discharge Screening Hypoglycemia", "cat": "Misc. Procedures", "src": "web", "common": false, "ord": 999}, {"c": "407.05", "t": "Discharge Screening Seizures", "cat": "Misc. Procedures", "src": "web", "common": false, "ord": 999}, {"c": "407.06", "t": "Discharge Screening Tachydysrhythmia", "cat": "Misc. Procedures", "src": "web", "common": false, "ord": 999}, {"c": "407.07", "t": "Discharge Screening", "cat": "Misc. Procedures", "src": "web", "common": false, "ord": 999}, {"c": "408", "t": "Personal Protective Equipment (PPE)", "cat": "Misc. Procedures", "src": "web", "common": true, "ord": 1}, {"c": "408.1", "t": "PPE – Not Required", "cat": "Misc. Procedures", "src": "web", "common": false, "ord": 999}, {"c": "408.2", "t": "PPE – Routine Practice", "cat": "Misc. Procedures", "src": "web", "common": false, "ord": 999}, {"c": "408.3", "t": "PPE – Contact/Droplet Precautions", "cat": "Misc. Procedures", "src": "web", "common": true, "ord": 2}, {"c": "408.4", "t": "PPE – Airborne Precautions", "cat": "Misc. Procedures", "src": "web", "common": true, "ord": 3}, {"c": "408.5", "t": "PPE – Health and Safety: Vest/Helmet", "cat": "Misc. Procedures", "src": "web", "common": false, "ord": 999}, {"c": "420.01", "t": "Medication Wastage – Diazepam", "cat": "Misc. Procedures", "src": "web", "common": false, "ord": 999}, {"c": "420.02", "t": "Medication Wastage – Fentanyl", "cat": "Misc. Procedures", "src": "web", "common": false, "ord": 999}, {"c": "420.03", "t": "Medication Wastage – Ketamine", "cat": "Misc. Procedures", "src": "web", "common": false, "ord": 999}, {"c": "420.04", "t": "Medication Wastage – Midazolam", "cat": "Misc. Procedures", "src": "web", "common": false, "ord": 999}, {"c": "420.05", "t": "Medication Wastage – Morphine", "cat": "Misc. Procedures", "src": "web", "common": false, "ord": 999}, {"c": "420.06", "t": "Medication Wastage – Hydromorphone", "cat": "Misc. Procedures", "src": "web", "common": false, "ord": 999}, {"c": "420.07", "t": "Medication Wastage – Lorazepam", "cat": "Misc. Procedures", "src": "web", "common": false, "ord": 999}, {"c": "421.01", "t": "Referral – Trillium Gift of Life Network", "cat": "Misc. Procedures", "src": "web", "common": false, "ord": 999}, {"c": "422.01", "t": "Alternate Destination Consent – OBTAINED", "cat": "Misc. Procedures", "src": "web", "common": false, "ord": 999}, {"c": "422.02", "t": "Alternate Destination Consent – DECLINED", "cat": "Misc. Procedures", "src": "web", "common": false, "ord": 999}, {"c": "422.03", "t": "Alternate Destination Patch – ACCEPTED", "cat": "Misc. Procedures", "src": "web", "common": false, "ord": 999}, {"c": "422.04", "t": "Alternate Destination Patch – DECLINED", "cat": "Misc. Procedures", "src": "web", "common": false, "ord": 999}, {"c": "422.05", "t": "Alternate Destination Patch – FAILED", "cat": "Misc. Procedures", "src": "web", "common": false, "ord": 999}, {"c": "422.06", "t": "Alternate Destination – Not Available", "cat": "Misc. Procedures", "src": "web", "common": false, "ord": 999}, {"c": "423", "t": "Naloxone Kit Distribution", "cat": "Misc. Procedures", "src": "web", "common": false, "ord": 999}, {"c": "424", "t": "Referral", "cat": "Misc. Procedures", "src": "web", "common": false, "ord": 999}, {"c": "424.01", "t": "Referral Consent – Obtained", "cat": "Misc. Procedures", "src": "web", "common": false, "ord": 999}, {"c": "424.02", "t": "Referral Consent – Declined", "cat": "Misc. Procedures", "src": "web", "common": false, "ord": 999}, {"c": "424.03", "t": "Referral Healthcare Provider/Facility – Accepted", "cat": "Misc. Procedures", "src": "web", "common": false, "ord": 999}, {"c": "424.04", "t": "Referral Healthcare Provider/Facility – Declined", "cat": "Misc. Procedures", "src": "web", "common": false, "ord": 999}, {"c": "424.05", "t": "Referral Healthcare Provider/Facility – Failed", "cat": "Misc. Procedures", "src": "web", "common": false, "ord": 999}, {"c": "425.01", "t": "Discharge Consent – Obtained", "cat": "Misc. Procedures", "src": "web", "common": false, "ord": 999}, {"c": "425.02", "t": "Discharge Consent – Declined", "cat": "Misc. Procedures", "src": "web", "common": false, "ord": 999}, {"c": "430.01", "t": "Fit2Sit", "cat": "Patient Disposition", "src": "web", "common": false, "ord": 999}, {"c": "503.01", "t": "Amoxicillin", "cat": "Medications", "src": "web", "common": false, "ord": 999}, {"c": "503.02", "t": "Cefuroxime", "cat": "Medications", "src": "web", "common": false, "ord": 999}, {"c": "503.03", "t": "Trimethoprim/Sulfamethoxazole", "cat": "Medications", "src": "web", "common": false, "ord": 999}, {"c": "503.04", "t": "Moxifloxacin", "cat": "Medications", "src": "web", "common": false, "ord": 999}, {"c": "503.05", "t": "Nitrofurantoin", "cat": "Medications", "src": "web", "common": false, "ord": 999}, {"c": "503.06", "t": "Ceftriaxone", "cat": "Medications", "src": "web", "common": false, "ord": 999}, {"c": "503.07", "t": "Cefazolin", "cat": "Medications", "src": "web", "common": false, "ord": 999}, {"c": "503.08", "t": "Antibiotic – Ointment", "cat": "Medications", "src": "web", "common": false, "ord": 999}, {"c": "537", "t": "Dexamethasone", "cat": "Medications", "src": "web", "common": false, "ord": 999}, {"c": "565", "t": "Haloperidol", "cat": "Medications", "src": "web", "common": false, "ord": 999}, {"c": "602", "t": "Ketamine", "cat": "Medications", "src": "web", "common": false, "ord": 999}, {"c": "607", "t": "Hydromorphone", "cat": "Medications", "src": "web", "common": false, "ord": 999}, {"c": "611", "t": "Buprenorphine/Naloxone (Suboxone)", "cat": "Medications", "src": "web", "common": false, "ord": 999}, {"c": "713", "t": "Glycopyrrolate", "cat": "Medications", "src": "web", "common": false, "ord": 999}, {"c": "728", "t": "Ondansetron", "cat": "Medications", "src": "web", "common": false, "ord": 999}, {"c": "729", "t": "Electrolyte – Potassium Elixir", "cat": "Medications", "src": "web", "common": false, "ord": 999}, {"c": "730", "t": "Lorazepam", "cat": "Medications", "src": "web", "common": false, "ord": 999}, {"c": "731", "t": "Immunization", "cat": "Medications", "src": "web", "common": false, "ord": 999}, {"c": "731.01", "t": "Tetanus", "cat": "Medications", "src": "web", "common": false, "ord": 999}, {"c": "732", "t": "Tranexamic Acid", "cat": "Medications", "src": "web", "common": false, "ord": 999}, {"c": "IH", "t": "Inhaled", "cat": "Routes of Administration", "src": "web", "common": false, "ord": 999}, {"c": "850", "t": "Study Drug (umbrella)", "cat": "Research – Medications", "src": "web", "common": false, "ord": 999}, {"c": "850.1", "t": "Study Drug – PITSTOP", "cat": "Research – Medications", "src": "web", "common": false, "ord": 999}, {"c": "850.2", "t": "Study Drug – Epinephrine 1:10,000", "cat": "Research – Medications", "src": "web", "common": false, "ord": 999}, {"c": "850.3", "t": "PRIME Study – Epinephrine 1:1,000", "cat": "Research – Medications", "src": "web", "common": false, "ord": 999}, {"c": "850.99", "t": "Study Drug – Methoxyflurane", "cat": "Research – Medications", "src": "web", "common": false, "ord": 999}, {"c": "931", "t": "Study Enrollment – C-Spine Study", "cat": "Research – Enrollment", "src": "web", "common": false, "ord": 999}, {"c": "932", "t": "Study Enrollment (umbrella)", "cat": "Research – Enrollment", "src": "web", "common": false, "ord": 999}, {"c": "932.1", "t": "Study Enrollment – FIRST", "cat": "Research – Enrollment", "src": "web", "common": false, "ord": 999}, {"c": "932.2", "t": "Study Enrollment – PITSTOP", "cat": "Research – Enrollment", "src": "web", "common": false, "ord": 999}, {"c": "932.3", "t": "Study Enrollment – DOSE VF", "cat": "Research – Enrollment", "src": "web", "common": false, "ord": 999}, {"c": "932.4", "t": "Study Enrollment – Palliative Care", "cat": "Research – Enrollment", "src": "web", "common": false, "ord": 999}, {"c": "932.5", "t": "Study Enrollment – EPIDose", "cat": "Research – Enrollment", "src": "web", "common": false, "ord": 999}, {"c": "932.6", "t": "Enrollment – PRIME Trial", "cat": "Research – Enrollment", "src": "web", "common": false, "ord": 999}, {"c": "932.7", "t": "Study Enrollment – Methoxyflurane", "cat": "Research – Enrollment", "src": "web", "common": false, "ord": 999}, {"c": "932.8", "t": "Study Enrollment – Fall", "cat": "Research – Enrollment", "src": "web", "common": false, "ord": 999}, {"c": "933", "t": "Study Procedure (umbrella)", "cat": "Research – Procedures", "src": "web", "common": false, "ord": 999}, {"c": "933.1", "t": "Study Procedure – FIRST – autoRIC application", "cat": "Research – Procedures", "src": "web", "common": false, "ord": 999}, {"c": "933.2 / .3 / .4", "t": "Study Procedure – DOSE VF (Standard / Vector Change / Double Sequential)", "cat": "Research – Procedures", "src": "web", "common": false, "ord": 999}, {"c": "933.51–.56", "t": "Consults / palliative registration / time interval / ICD deactivation", "cat": "Research – Procedures", "src": "web", "common": false, "ord": 999}, {"c": "933.62 / .63", "t": "PITSTOP – IV Aggressive / Standard Bolus", "cat": "Research – Procedures", "src": "web", "common": false, "ord": 999}, {"c": "933.64", "t": "Patellar Reduction", "cat": "Research – Procedures", "src": "web", "common": false, "ord": 999}, {"c": "934.01–934.06", "t": "Palliative Care – Pain / Dyspnea / Delirium or Agitation / Nausea & Vomiting / Terminal Congested Breathing / Other", "cat": "Research – Problem Codes", "src": "web", "common": false, "ord": 999}, {"c": "3430", "t": "Hospital Physician Initial Assessment", "cat": "Hospital Treatment during Offload Delay", "src": "local", "common": false, "ord": 999}, {"c": "3431", "t": "Hospital initiated phlebotomy", "cat": "Hospital Treatment during Offload Delay", "src": "local", "common": false, "ord": 999}, {"c": "3432", "t": "Hospital initiated analgesia", "cat": "Hospital Treatment during Offload Delay", "src": "local", "common": false, "ord": 999}, {"c": "3433", "t": "Hospital initiated fluid therapy", "cat": "Hospital Treatment during Offload Delay", "src": "local", "common": false, "ord": 999}, {"c": "3434", "t": "Hospital initiated care other", "cat": "Hospital Treatment during Offload Delay", "src": "local", "common": false, "ord": 999}, {"c": "1661", "t": "Hôpital Montfort (Ottawa)", "cat": "Hospital / Destination", "src": "local", "common": false}, {"c": "1681", "t": "Queensway-Carleton Hospital (QCH, Ottawa)", "cat": "Hospital / Destination", "src": "local", "common": false}, {"c": "1657", "t": "Children's Hospital of Eastern Ontario (CHEO, Ottawa)", "cat": "Hospital / Destination", "src": "local", "common": false}, {"c": "4048", "t": "Ottawa Hospital – General Site", "cat": "Hospital / Destination", "src": "local", "common": false}, {"c": "4046", "t": "Ottawa Hospital – Civic Site", "cat": "Hospital / Destination", "src": "local", "common": false}, {"c": "4164", "t": "University of Ottawa Heart Institute", "cat": "Hospital / Destination", "src": "local", "common": false}, {"c": "40260", "t": "Target Engagement and Diversion (TED) Program", "cat": "Hospital / Destination", "src": "local", "common": false}, {"c": "1885", "t": "Winchester District Memorial Hospital", "cat": "Hospital / Destination", "src": "local", "common": false}, {"c": "1284", "t": "Kemptville District Hospital", "cat": "Hospital / Destination", "src": "local", "common": false}, {"c": "1256", "t": "Carleton Place & District Memorial Hospital", "cat": "Hospital / Destination", "src": "local", "common": false}, {"c": "1799", "t": "Arnprior Regional Health", "cat": "Hospital / Destination", "src": "local", "common": false}, {"c": "1870", "t": "Glengarry Memorial Hospital (Alexandria)", "cat": "Hospital / Destination", "src": "local", "common": false}, {"c": "1254", "t": "Almonte General Hospital", "cat": "Hospital / Destination", "src": "local", "common": false}, {"c": "3991", "t": "Quinte Health – Bancroft", "cat": "Hospital / Destination", "src": "local", "common": false}, {"c": "1801", "t": "St Francis Memorial Hospital (Barry's Bay)", "cat": "Hospital / Destination", "src": "local", "common": false}, {"c": "3988", "t": "Quinte Health – Belleville", "cat": "Hospital / Destination", "src": "local", "common": false}, {"c": "1273", "t": "Brockville General Hospital", "cat": "Hospital / Destination", "src": "local", "common": false}, {"c": "1597", "t": "Campbellford Memorial Hospital", "cat": "Hospital / Destination", "src": "local", "common": false}, {"c": "4008", "t": "Lakeridge Health – Bowmanville (Clarington)", "cat": "Hospital / Destination", "src": "local", "common": false}, {"c": "3860", "t": "Northumberland Hills Hospital (Cobourg)", "cat": "Hospital / Destination", "src": "local", "common": false}, {"c": "4451", "t": "Cornwall Community Hospital", "cat": "Hospital / Destination", "src": "local", "common": false}, {"c": "1803", "t": "Deep River & District Health", "cat": "Hospital / Destination", "src": "local", "common": false}, {"c": "3737", "t": "Haliburton Highlands Health Services", "cat": "Hospital / Destination", "src": "local", "common": false}, {"c": "1777", "t": "Hawkesbury & District General Hospital", "cat": "Hospital / Destination", "src": "local", "common": false}, {"c": "4830", "t": "Kingston Health Sciences Centre – Hotel Dieu", "cat": "Hospital / Destination", "src": "local", "common": false}, {"c": "4831", "t": "Kingston Health Sciences Centre – Kingston General (KGH)", "cat": "Hospital / Destination", "src": "local", "common": false}, {"c": "1893", "t": "Ross Memorial Hospital (Lindsay)", "cat": "Hospital / Destination", "src": "local", "common": false}, {"c": "1295", "t": "Lennox & Addington County General Hospital (Napanee)", "cat": "Hospital / Destination", "src": "local", "common": false}, {"c": "3932", "t": "Lakeridge Health – Oshawa", "cat": "Hospital / Destination", "src": "local", "common": false}, {"c": "1804", "t": "Pembroke Regional Hospital", "cat": "Hospital / Destination", "src": "local", "common": false}, {"c": "3732", "t": "Perth & Smiths Falls District – Perth Site", "cat": "Hospital / Destination", "src": "local", "common": false}, {"c": "1768", "t": "Peterborough Regional Health Centre", "cat": "Hospital / Destination", "src": "local", "common": false}, {"c": "3992", "t": "Quinte Health – Picton", "cat": "Hospital / Destination", "src": "local", "common": false}, {"c": "1813", "t": "Renfrew Victoria Hospital", "cat": "Hospital / Destination", "src": "local", "common": false}, {"c": "4005", "t": "Lakeridge Health – Port Perry (Scugog)", "cat": "Hospital / Destination", "src": "local", "common": false}, {"c": "1269", "t": "Perth & Smiths Falls District – Smiths Falls Site", "cat": "Hospital / Destination", "src": "local", "common": false}, {"c": "1193", "t": "Canadian Forces Hospital (Trenton)", "cat": "Hospital / Destination", "src": "local", "common": false}, {"c": "3994", "t": "Quinte Health – Trenton", "cat": "Hospital / Destination", "src": "local", "common": false}];
+/* ===== Banner messages — edit this list to change the news ===== */
+const NEWS = [
+  "This tool is to be used for your convenience in completing documentation.",
+  "This tool does not replace instruction from your service or base hospital."
+];
+const NEWS_ROTATE_MS = 5000;
+/* ============================================================== */
+const HOSPITALS = [{"c": "1661", "t": "Hôpital Montfort (Ottawa)"}, {"c": "1681", "t": "Queensway-Carleton Hospital (QCH, Ottawa)"}, {"c": "1657", "t": "Children's Hospital of Eastern Ontario (CHEO, Ottawa)"}, {"c": "4048", "t": "Ottawa Hospital – General Site"}, {"c": "4046", "t": "Ottawa Hospital – Civic Site"}, {"c": "4164", "t": "University of Ottawa Heart Institute"}, {"c": "40260", "t": "Target Engagement and Diversion (TED) Program"}, {"c": "1885", "t": "Winchester District Memorial Hospital"}, {"c": "1284", "t": "Kemptville District Hospital"}, {"c": "1256", "t": "Carleton Place & District Memorial Hospital"}, {"c": "1799", "t": "Arnprior Regional Health"}, {"c": "1870", "t": "Glengarry Memorial Hospital (Alexandria)"}, {"c": "1254", "t": "Almonte General Hospital"}, {"c": "3991", "t": "Quinte Health – Bancroft"}, {"c": "1801", "t": "St Francis Memorial Hospital (Barry's Bay)"}, {"c": "3988", "t": "Quinte Health – Belleville"}, {"c": "1273", "t": "Brockville General Hospital"}, {"c": "1597", "t": "Campbellford Memorial Hospital"}, {"c": "4008", "t": "Lakeridge Health – Bowmanville (Clarington)"}, {"c": "3860", "t": "Northumberland Hills Hospital (Cobourg)"}, {"c": "4451", "t": "Cornwall Community Hospital"}, {"c": "1803", "t": "Deep River & District Health"}, {"c": "3737", "t": "Haliburton Highlands Health Services"}, {"c": "1777", "t": "Hawkesbury & District General Hospital"}, {"c": "4830", "t": "Kingston Health Sciences Centre – Hotel Dieu"}, {"c": "4831", "t": "Kingston Health Sciences Centre – Kingston General (KGH)"}, {"c": "1893", "t": "Ross Memorial Hospital (Lindsay)"}, {"c": "1295", "t": "Lennox & Addington County General Hospital (Napanee)"}, {"c": "3932", "t": "Lakeridge Health – Oshawa"}, {"c": "1804", "t": "Pembroke Regional Hospital"}, {"c": "3732", "t": "Perth & Smiths Falls District – Perth Site"}, {"c": "1768", "t": "Peterborough Regional Health Centre"}, {"c": "3992", "t": "Quinte Health – Picton"}, {"c": "1813", "t": "Renfrew Victoria Hospital"}, {"c": "4005", "t": "Lakeridge Health – Port Perry (Scugog)"}, {"c": "1269", "t": "Perth & Smiths Falls District – Smiths Falls Site"}, {"c": "1193", "t": "Canadian Forces Hospital (Trenton)"}, {"c": "3994", "t": "Quinte Health – Trenton"}];
+const BADGE = {form:['On form','b-form'], web:["Add'l",'b-add'], local:['Local','b-local']};
+const list=document.getElementById('list'), input=document.getElementById('q'),
+      countEl=document.getElementById('count'), clearBtn=document.getElementById('clear');
+let filter='all';
+let renderedItems=[];
+
+const norm=s=>s.toLowerCase().replace(/[–—]/g,'-');
+const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+function score(item,q){
+  const t=norm(item.t), code=norm(item.c).replace(/[^0-9a-z.]/g,''), qc=q.replace(/[^0-9a-z.]/g,'');
+  if(qc && /[0-9]/.test(q)){
+    if(code===qc) return 1000;
+    if(code.startsWith(qc)) return 700;
+    if(code.includes(qc)) return 400;
+  }
+  if(t===q) return 950;
+  if(t.startsWith(q)) return 800;
+  if(t.split(/[^a-z0-9]+/).some(w=>w.startsWith(q))) return 600;
+  if(t.includes(q)) return 300;
+  const toks=q.split(/\s+/).filter(Boolean);
+  if(toks.length>1 && toks.every(tk=>t.includes(tk))) return 250;
+  return 0;
+}
+function highlight(text,q){
+  if(!q) return esc(text);
+  let out=esc(text);
+  [...new Set(q.split(/\s+/).filter(Boolean))].forEach(tk=>{
+    const re=new RegExp('('+tk.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','ig');
+    out=out.replace(re,'<mark>$1</mark>');
+  });
+  return out;
+}
+function render(){
+  const raw=input.value.trim(), q=norm(raw);
+  clearBtn.style.display=raw?'block':'none';
+  let items = q ? DATA.slice()
+            : filter==='common' ? DATA.filter(d=>d.common)
+            : DATA.slice();
+  if(q){
+    items=items.map(d=>({d,s:score(d,q)})).filter(x=>x.s>0)
+               .sort((a,b)=>b.s-a.s || a.d.t.localeCompare(b.d.t)).map(x=>x.d);
+  }else if(filter==='common'){
+    items.sort((a,b)=>(a.ord-b.ord) || a.cat.localeCompare(b.cat) || a.t.localeCompare(b.t));
+  }else{
+    items.sort((a,b)=>a.cat.localeCompare(b.cat)||a.t.localeCompare(b.t));
+  }
+  countEl.textContent=items.length+(items.length===1?' code':' codes');
+  if(!items.length){
+    list.innerHTML=`<div class="empty"><h2>No matches for "${esc(raw)}"</h2>
+      <p>Try a shorter word, a synonym, or the code number.</p>
+      <div class="examples">${['fentanyl','stroke','12-lead','oxygen','PPE','seizure','IV'].map(e=>`<button class="ex">${e}</button>`).join('')}</div></div>`;
+    return;
+  }
+  const cap=q?300:items.length;
+  renderedItems=items.slice(0,cap);
+  list.innerHTML=renderedItems.map((d,i)=>{
+    const badge=d.src==='local'?'<span class="badge b-local">Local</span>':'';
+    const star=d.common?'<span class="star" title="Common — every call">★</span>':'';
+    return `<div class="row ${d.common?'is-common':''}" data-ri="${i}">
+      <span class="code">${esc(d.c)}</span>
+      <span class="meta"><div class="title">${star}${highlight(d.t,q)}</div><div class="cat">${esc(d.cat)}</div></span>
+      <span class="right">${badge}<span class="plus">+</span></span></div>`;
+  }).join('');
+}
+function applyChips(){document.querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed', c.dataset.f===filter?'true':'false'));}
+input.addEventListener('input',()=>{
+  if(input.value.trim() && filter!=='all'){filter='all';applyChips();}
+  render();
+});
+clearBtn.addEventListener('click',()=>{input.value='';input.focus();render();});
+document.querySelectorAll('.chip').forEach(ch=>ch.addEventListener('click',()=>{
+  filter=ch.dataset.f; applyChips(); render();
+}));
+list.addEventListener('click',e=>{
+  if(e.target.classList.contains('ex')){input.value=e.target.textContent;input.focus();render();return;}
+  const row=e.target.closest('.row');
+  if(row && row.dataset.ri!==undefined) addItem(renderedItems[+row.dataset.ri], row);
+});
+
+// modals
+const overlay=document.getElementById('overlay'), modalBody=document.getElementById('modalBody'),
+      modalTitle=document.getElementById('modalTitle');
+function hrows(arr){return arr.map(h=>`<div class="hrow"><span class="hcode">${esc(h.c)}</span><span class="hname">${esc(h.t)}</span></div>`).join('');}
+function showModal(title,bodyHTML,backFn){
+  modalTitle.textContent=title; modalBody.innerHTML=bodyHTML; modalBody.scrollTop=0;
+  const mb=document.getElementById('modalBack');
+  if(backFn){ mb.hidden=false; mb._fn=backFn; } else { mb.hidden=true; mb._fn=null; }
+  overlay.classList.add('open'); document.getElementById('closeModal').focus();
+}
+function closeModal(){overlay.classList.remove('open');}
+
+const HOSP_LINKS=`<div class="grouplabel">More hospital codes</div>
+     <div class="hlinks">
+       <a href="https://www.ontario.ca/page/ministry-reports-master-numbering-system" target="_blank" rel="noopener">Ministry Master Numbering System
+         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M17 7H9M17 7v8"/></svg></a>
+       <a href="https://www.ontario.ca/files/2026-04/moh-2026-master-numbering-system-codes-en-2026-04-09.xlsx" target="_blank" rel="noopener">Full code list — Excel (April 2026)
+         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg></a>
+     </div>`;
+function hospitalBlock(){
+  return `<details class="qr-hosp"><summary>Hospital codes — receiving facilities
+      <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></summary>
+    <div>${hrows(HOSPITALS)}${HOSP_LINKS}</div></details>`;
+}
+
+function generateQuickref(cacc, service, station, bh) {
+  return [
+    {l:"Service No", v:service, mono:true},
+    {l:"Station", v:station, mono:true},
+    {l:"CACC/ACS", v:cacc, mono:true},
+    {l:"Status", pairs:[["00","At Base"],["77","Mobile"],["88","Standby Location"],["99","Maintenance"]]},
+    {l:"Dispatch code", colours:["G","Y","O","R","P"]},
+    {l:"Return Code", v:"Pt Return CTAS"},
+    {l:"Base Hospital Number", v:bh, mono:true},
+  ];
+}
+const QUICKREF_DATA = {
+  "Toronto": generateQuickref("933", "?", "?", "?"),
+  "Oshawa": generateQuickref("931", "?", "?", "?"),
+  "London": generateQuickref("910", "?", "?", "?"),
+  "Lindsay": generateQuickref("934", "?", "?", "?"),
+  "Muskoka": generateQuickref("206", "?", "?", "?"),
+  "Wallaceburg": generateQuickref("911", "?", "?", "?"),
+  "Parry Sound": generateQuickref("959", "?", "?", "?"),
+  "Renfrew": generateQuickref("941", "?", "?", "?"),
+  "Kingston": generateQuickref("942", "?", "?", "?"),
+  "Windsor": generateQuickref("912", "?", "?", "?"),
+  "ORNGE": generateQuickref("970", "?", "?", "?"),
+  "Sudbury": generateQuickref("950", "?", "?", "?"),
+  "Thunder Bay": generateQuickref("960", "?", "?", "?"),
+  "Ottawa": generateQuickref("940", "725", "002", "BH02"),
+  "Mississauga": generateQuickref("454", "?", "?", "?"),
+  "Kenora": generateQuickref("961", "?", "?", "?"),
+  "Cambridge": generateQuickref("921", "?", "?", "?"),
+  "Timmins": generateQuickref("952", "?", "?", "?"),
+  "Sault Ste Marie": generateQuickref("951", "?", "?", "?"),
+  "Georgian": generateQuickref("930", "?", "?", "?"),
+  "Niagara": generateQuickref("923", "?", "?", "?"),
+  "Hamilton": generateQuickref("920", "?", "?", "?"),
+  "James Bay": generateQuickref("263", "?", "?", "?"),
+  "Frontenac": generateQuickref("?", "?", "?", "?"),
+  "Cornwall": generateQuickref("?", "?", "?", "?")
+};
+
+const COLOURS={G:["#2e9e5b","#fff","Green"],Y:["#ecc100","#3a2f00","Yellow"],
+  O:["#e2761b","#fff","Orange"],R:["#d23b3b","#fff","Red"],P:["#7a3fb0","#fff","Purple"]};
+
+window.renderQuickrefService = function(service) {
+  const data = QUICKREF_DATA[service];
+  if(!data) return;
+  const body = data.map(r=>{
+    let val;
+    if(r.pairs){
+      val=`<div class="qr-pairs">${r.pairs.map(p=>`<span class="qr-pair"><b>${esc(p[0])}</b> ${esc(p[1])}</span>`).join('')}</div>`;
+    }else if(r.colours){
+      val=`<div class="qr-colours">${r.colours.map(c=>{const[bg,fg,name]=COLOURS[c];
+        return `<span class="qr-col" title="${name}" style="background:${bg};color:${fg}">${c}</span>`;}).join('')}</div>`
+        +`<div class="qr-note">Green · Yellow · Orange · Red · Purple — colour-coded priority</div>`;
+    }else{
+      val=`<span class="qr-val${r.mono?' mono':''}">${esc(r.v)}</span>`;
+    }
+    return `<div class="qr-row"><span class="qr-label">${esc(r.l)}</span><span>${val}</span></div>`;
+  }).join('');
+  const backBtn = `<button class="tbtn ghost" onclick="openQuickref()" style="margin-bottom:16px;width:100%">← Back to Service List</button>`;
+  showModal(`Quick reference: ${service}`, backBtn + body + hospitalBlock());
+};
+
+function openQuickref(){
+  const buttons = Object.keys(QUICKREF_DATA).map(service => {
+    return `<button class="tbtn primary" onclick="renderQuickrefService('${service}')" style="margin-bottom:8px;width:100%;justify-content:flex-start;">${service}</button>`;
+  }).join('');
+  showModal('Select Service', buttons);
+}
+
+/* ----- Other tools ----- */
+const ABBREV=[
+ ["General Documentation",[
+   ["ACR","Ambulance Call Report"],["eACR","Electronic Ambulance Call Report"],
+   ["ePCR","Electronic Paramedic Call Report"],["CNO","Could Not Obtain"],
+   ["NKA","No Known Allergies"],["DNR","Do Not Resuscitate"],["SDM","Substitute Decision Maker"],
+   ["TOC","Transfer of Care"],["PHI","Personal Health Information"],
+   ["QA / CQI","Quality Assurance / Continuous Quality Improvement"],
+   ["ODDPS","Ontario Data Dictionary for Paramedic Services"],["MOH","Ministry of Health"],
+   ["ASO","Ambulance Service Operator"],
+   ["CACC / ACS","Central Ambulance Communications Centre / Ambulance Communication Service"],
+   ["ACO","Ambulance Communications Officer"],["CTAS","Canadian Triage and Acuity Scale"],
+   ["PHIPA","Personal Health Information Protection Act"],["CAS","Children's Aid Society"]]],
+ ["Patient Assessment & Vital Signs",[
+   ["BP","Blood Pressure"],["GCS","Glasgow Coma Scale"],["SpO2","Pulse Oximetry (oxygen saturation)"],
+   ["ETCO2","End-tidal Carbon Dioxide"],["ECG","Electrocardiogram"],["HR","Heart Rate"],
+   ["RR","Respiration Rate"],["VSA","Vital Signs Absent"],["ROSC","Return of Spontaneous Circulation"]]],
+ ["Clinical Conditions",[
+   ["SOB","Shortness of Breath"],["CVA","Cerebrovascular Accident (\"Stroke\")"],
+   ["COPD","Chronic Obstructive Pulmonary Disease"],["STEMI","ST-segment Elevation Myocardial Infarction"],
+   ["ALOC / ALC","Altered Level of Consciousness"],["LOC","Level of Consciousness"],
+   ["CPR","Cardiopulmonary Resuscitation"],["TOR","Termination of Resuscitation"],
+   ["FREI","Febrile Respiratory/Enteric Illness"],["LVO","Large Vessel Occlusion"]]],
+ ["Procedures & Treatments",[
+   ["IV","Intravenous"],["SMR","Spinal Motion Restriction"],["C-spine","Cervical Spine"],
+   ["PCI","Percutaneous Coronary Intervention"],["EVT","Endovascular Therapy"],
+   ["AED","Automated External Defibrillator"],["O2","Oxygen"]]],
+ ["Personnel & Levels of Care",[
+   ["PCP","Primary Care Paramedic"],["ACP","Advanced Care Paramedic"],["CCP","Critical Care Paramedic"],
+   ["EMA","Emergency Medical Attendant"],["BLS PCS","Basic Life Support Patient Care Standards"],
+   ["ALS PCS","Advanced Life Support Patient Care Standards"]]],
+ ["Scales & Scoring",[
+   ["LAMS","Los Angeles Motor Scale"],["CTAS","Canadian Triage and Acuity Scale"],
+   ["GCS","Glasgow Coma Scale"],["APGAR","Neonatal scoring (ACR reverse side)"]]],
+ ["Measurements",[
+   ["kg","Kilogram"],["mL","Millilitre"],["L","Litre"],["km","Kilometre"],["hr","Hour"],
+   ["mEq","Milliequivalent"],["mmol","Millimole"],["M / F","Male / Female"],
+   ["Y / M / D","Years / Months / Days (patient age)"]]],
+];
+function openAbbrev(){
+  const body=`<p class="ab-intro">Approved shorthand for ACR documentation.</p>`+
+    ABBREV.map(([cat,rows])=>`<div class="grouplabel">${esc(cat)}</div>`+
+      rows.map(([c,d])=>`<div class="abrow"><span class="ab-c">${esc(c)}</span><span class="ab-d">${esc(d)}</span></div>`).join('')
+    ).join('');
+  showModal('Ministry approved abbreviations', body, openOtherTools);
+}
+function openOtherTools(){
+  const opts=[
+    {t:"Ministry Approved abbreviations", act:"abbrev"},
+    {t:"Sample forms", sub:"Completed ACR examples", href:"sample_forms.html"},
+    {t:"Submit a question", sub:"External link to MS Forms", href:"https://forms.cloud.microsoft/r/gssS0sBkaZ", ext:true},
+    {t:"Day / night mode", sub:(isDark()?"Switch to light":"Switch to dark"), act:"theme"},
+    null,null
+  ];
+  const body=`<div class="toolgrid">`+opts.map(o=>{
+    if(!o) return `<button class="toolopt is-empty" disabled aria-label="Reserved for a future tool"></button>`;
+    const inner=`<span class="toolopt-t">${esc(o.t)}</span>`+(o.sub?`<span class="toolopt-sub">${esc(o.sub)}</span>`:'');
+    return o.href
+      ? `<a class="toolopt" href="${o.href}"${o.ext?' target="_blank" rel="noopener"':''}>${inner}</a>`
+      : `<button class="toolopt" data-act="${o.act}">${inner}</button>`;
+  }).join('')+`</div>`;
+  showModal('Other tools', body);
+}
+
+document.getElementById('otherToolsBtn').addEventListener('click',openOtherTools);
+document.getElementById('quickrefBtn').addEventListener('click',openQuickref);
+document.getElementById('closeModal').addEventListener('click',closeModal);
+document.getElementById('modalBack').addEventListener('click',()=>{const mb=document.getElementById('modalBack'); if(mb._fn) mb._fn();});
+modalBody.addEventListener('click',e=>{const b=e.target.closest('[data-act]'); if(!b) return;
+  if(b.dataset.act==='abbrev') openAbbrev();
+  else if(b.dataset.act==='theme'){ toggleTheme(); openOtherTools(); }
+});
+overlay.addEventListener('click',e=>{if(e.target===overlay)closeModal();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+
+/* ---- selection queue ---- */
+let selected=[], lastCleared=null, toastTimer=null;
+const GRIP='<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="5" r="1.55"/><circle cx="15" cy="5" r="1.55"/><circle cx="9" cy="12" r="1.55"/><circle cx="15" cy="12" r="1.55"/><circle cx="9" cy="19" r="1.55"/><circle cx="15" cy="19" r="1.55"/></svg>';
+const dock=document.getElementById('dock'), dockCount=document.getElementById('dockCount'),
+      queueView=document.getElementById('queueView'), queueList=document.getElementById('queueList'),
+      queueTitle=document.getElementById('queueTitle'),
+      toast=document.getElementById('toast'), toastMsg=document.getElementById('toastMsg'),
+      toastUndo=document.getElementById('toastUndo');
+
+function syncDock(){
+  const n=selected.length;
+  dock.hidden=n===0;
+  document.body.classList.toggle('has-dock', n>0);
+  dockCount.textContent=n;
+  if(n===0 && !queueView.hidden) renderQueue();
+}
+function bump(){dockCount.classList.add('bump');setTimeout(()=>dockCount.classList.remove('bump'),170);}
+function addItem(d,rowEl){
+  if(!d) return;
+  selected.push({c:d.c,t:d.t});
+  syncDock(); bump();
+  if(rowEl){rowEl.classList.add('flash');setTimeout(()=>rowEl.classList.remove('flash'),230);}
+  showToast('Added '+d.c+' — '+d.t);
+  if(!queueView.hidden) renderQueue();
+}
+function removeAt(i){selected.splice(i,1);syncDock();renderQueue();}
+function dup(i){selected.splice(i+1,0,selected[i]);syncDock();renderQueue();}
+function move(i,dir){const j=i+dir;if(j<0||j>=selected.length)return;
+  [selected[i],selected[j]]=[selected[j],selected[i]];renderQueue();}
+function clearAll(){
+  if(!selected.length)return;
+  lastCleared=selected.slice(); selected=[]; syncDock(); renderQueue();
+  showToast('List cleared', true);
+}
+function undoClear(){if(lastCleared){selected=lastCleared.slice();lastCleared=null;syncDock();renderQueue();hideToast();}}
+
+function showToast(msg,undo){
+  toastMsg.textContent=msg; toastUndo.hidden=!undo; toast.hidden=false;
+  clearTimeout(toastTimer); toastTimer=setTimeout(hideToast, undo?6000:1500);
+}
+function hideToast(){toast.hidden=true;}
+
+function renderQueue(){
+  const cb=document.getElementById('copyListBtn'), sb=document.getElementById('shareListBtn');
+  if(cb) cb.disabled=!selected.length; if(sb) sb.disabled=!selected.length;
+  queueTitle.textContent='Your codes ('+selected.length+')';
+  if(!selected.length){
+    queueList.innerHTML='<div class="sheet-empty"><b>No codes selected yet</b>Tap any result to add it here, in order.</div>';
+    return;
+  }
+  queueList.innerHTML='<div class="qhint">'+GRIP+'Hold and drag the left edge to reorder</div>'+
+    selected.map((d,i)=>`<div class="qline" data-i="${i}">
+      <span class="qhandle" aria-label="Drag to reorder">${GRIP}<span class="qnum">${i+1}</span></span>
+      <span class="qcode">${esc(d.c)}</span>
+      <span class="qdesc">${esc(d.t)}</span>
+      <span class="qctrl">
+        <button class="qbtn arrow" data-act="up" data-i="${i}" ${i===0?'disabled':''} aria-label="Move up">&uarr;</button>
+        <button class="qbtn arrow" data-act="down" data-i="${i}" ${i===selected.length-1?'disabled':''} aria-label="Move down">&darr;</button>
+        <button class="qbtn" data-act="dup" data-i="${i}" aria-label="Duplicate"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>
+        <button class="qbtn del" data-act="del" data-i="${i}" aria-label="Remove">&times;</button>
+      </span></div>`).join('');
+}
+function openQueue(){renderQueue();queueView.hidden=false;}
+function closeQueue(){queueView.hidden=true;}
+
+queueList.addEventListener('click',e=>{
+  const b=e.target.closest('.qbtn'); if(!b)return;
+  const i=+b.dataset.i;
+  if(b.dataset.act==='up')move(i,-1);
+  else if(b.dataset.act==='down')move(i,1);
+  else if(b.dataset.act==='dup')dup(i);
+  else removeAt(i);
+});
+
+/* ---- hold-and-drag reordering (handle on the left) ---- */
+(function(){
+  const HOLD_MS=110, MOVE_ACTIVATE=5;
+  let dragRow=null, holdTimer=null, startY=0, pendRow=null, pendHandle=null, capId=null;
+  const rows=()=>[...queueList.querySelectorAll('.qline')];
+
+  function activate(){
+    if(dragRow||!pendRow) return;
+    clearTimeout(holdTimer); holdTimer=null;
+    dragRow=pendRow; dragRow.classList.add('lift');
+    try{ pendHandle.setPointerCapture(capId); }catch(_){ }
+  }
+  function onMove(e){
+    if(!dragRow){
+      if(Math.abs(e.clientY-startY)>MOVE_ACTIVATE) activate();
+      if(!dragRow) return;
+    }
+    const y=e.clientY; let ref=null;
+    for(const r of rows()){
+      if(r===dragRow) continue;
+      const box=r.getBoundingClientRect();
+      if(y < box.top+box.height/2){ ref=r; break; }
+    }
+    if(ref){ if(ref!==dragRow.nextSibling) queueList.insertBefore(dragRow,ref); }
+    else queueList.appendChild(dragRow);
+  }
+  function endDrag(){
+    clearTimeout(holdTimer); holdTimer=null;
+    document.removeEventListener('pointermove',onMove,true);
+    document.removeEventListener('pointerup',endDrag,true);
+    document.removeEventListener('pointercancel',endDrag,true);
+    if(pendHandle&&capId!=null){ try{pendHandle.releasePointerCapture(capId);}catch(_){ } }
+    if(dragRow){
+      dragRow.classList.remove('lift');
+      const next=rows().map(r=>selected[+r.dataset.i]);
+      dragRow=null; selected=next; renderQueue();
+    }
+    pendRow=null; pendHandle=null; capId=null;
+  }
+  queueList.addEventListener('pointerdown',e=>{
+    const handle=e.target.closest('.qhandle'); if(!handle) return;
+    const row=handle.closest('.qline'); if(!row) return;
+    startY=e.clientY; pendRow=row; pendHandle=handle; capId=e.pointerId;
+    document.addEventListener('pointermove',onMove,true);
+    document.addEventListener('pointerup',endDrag,true);
+    document.addEventListener('pointercancel',endDrag,true);
+    holdTimer=setTimeout(activate,HOLD_MS);
+  });
+})();
+/* ---- usage counter: fire-and-forget, never blocks or breaks the UI ---- */
+const COUNT_URL = "https://acr-counter.sir-hodges.workers.dev/hit";  /* live counter Worker */
+function pingCount(k){
+  try{
+    if(!COUNT_URL) return;
+    const u=COUNT_URL+"?k="+k;
+    if(navigator.sendBeacon) navigator.sendBeacon(u);
+    else fetch(u,{mode:"no-cors",keepalive:true});
+  }catch(e){}
+}
+document.getElementById('viewListBtn').addEventListener('click',()=>{ openQueue(); pingCount('viewlist'); });
+document.getElementById('addMoreBtn').addEventListener('click',closeQueue);
+document.getElementById('dockClear').addEventListener('click',clearAll);
+document.getElementById('sheetClear').addEventListener('click',clearAll);
+toastUndo.addEventListener('click',undoClear);
+document.addEventListener('keydown',e=>{if(e.key==='Escape' && !queueView.hidden)closeQueue();});
+
+/* ---- share / copy a call list ---- */
+const BY_CODE={}; DATA.forEach(d=>{ if(!(d.c in BY_CODE)) BY_CODE[d.c]=d; });
+function shareURL(){
+  return location.href.split('#')[0].split('?')[0] + '#list=' + selected.map(d=>d.c).join(',');
+}
+function legacyCopy(text){
+  const ta=document.createElement('textarea'); ta.value=text;
+  ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta);
+  ta.focus(); ta.select(); try{document.execCommand('copy');}catch(e){} document.body.removeChild(ta);
+}
+function flashCopied(btn){
+  if(!btn) return;
+  const orig=btn.innerHTML;
+  btn.innerHTML='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Copied!';
+  btn.classList.add('ok'); clearTimeout(btn._t);
+  btn._t=setTimeout(()=>{ btn.innerHTML=orig; btn.classList.remove('ok'); }, 1500);
+}
+async function copyList(){
+  if(!selected.length) return;
+  const url=shareURL();
+  try{ await navigator.clipboard.writeText(url); }catch(e){ legacyCopy(url); }
+  flashCopied(document.getElementById('copyListBtn'));
+}
+async function shareList(){
+  if(!selected.length) return;
+  const url=shareURL();
+  if(navigator.share){ try{ await navigator.share({title:'ACR code list', url}); }catch(e){} }
+  else { copyList(); }
+}
+function loadFromHash(){
+  const m=(location.hash||'').match(/list=([^&]+)/);
+  if(!m) return;
+  const codes=decodeURIComponent(m[1]).split(',').map(s=>s.trim()).filter(Boolean);
+  const add=codes.map(c=>BY_CODE[c]).filter(Boolean);
+  if(add.length){ selected=add.slice(); syncDock(); openQueue(); }
+  history.replaceState(null,'',location.pathname);
+}
+document.getElementById('copyListBtn').addEventListener('click',copyList);
+document.getElementById('shareListBtn').addEventListener('click',shareList);
+if(navigator.share) document.getElementById('shareListBtn').hidden=false;
+loadFromHash();
+
+
+
+/* ---- news banner rotation ---- */
+(function(){
+  const banner=document.getElementById('news'), msgEl=document.getElementById('newsMsg'),
+        closeBtn=document.getElementById('newsX');
+  if(!banner||!msgEl) return;
+  if(!NEWS.length){ banner.style.display='none'; return; }
+  const reduce=window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+  let i=0, timer=null;
+  msgEl.innerHTML=NEWS[0];
+  if(NEWS.length>1){
+    timer=setInterval(()=>{
+      i=(i+1)%NEWS.length;
+      if(reduce){ msgEl.innerHTML=NEWS[i]; return; }
+      msgEl.style.opacity=0;
+      setTimeout(()=>{ msgEl.innerHTML=NEWS[i]; msgEl.style.opacity=1; }, 400);
+    }, NEWS_ROTATE_MS);
+  }
+  if(closeBtn) closeBtn.addEventListener('click',()=>{ if(timer)clearInterval(timer); banner.style.display='none'; });
+})();
+
+/* ---- day / night mode (toggled from Other tools) ---- */
+function isDark(){ return document.documentElement.classList.contains('dark'); }
+function toggleTheme(){
+  const dark=document.documentElement.classList.toggle('dark');
+  try{ localStorage.setItem('acr-theme', dark ? 'dark' : 'light'); }catch(e){}
+  return dark;
+}
+
+render();
+</script>
+</body>
+</html>
