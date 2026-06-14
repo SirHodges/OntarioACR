@@ -626,10 +626,8 @@ function openAbbrev(){
 function openOtherTools(){
   const opts=[
     {t:"Ministry Approved abbreviations", act:"abbrev"},
-    {t:"Sample forms", sub:"Completed ACR examples", href:"sample_forms.html"},
-    {t:"Submit a question", sub:"External link to MS Forms", href:"https://forms.cloud.microsoft/r/gssS0sBkaZ", ext:true},
     {t:"Day / night mode", sub:(isDark()?"Switch to light":"Switch to dark"), act:"theme"},
-    null,null
+    null,null,null,null
   ];
   const body=`<div class="toolgrid">`+opts.map(o=>{
     if(!o) return `<button class="toolopt is-empty" disabled aria-label="Reserved for a future tool"></button>`;
