@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ACR Code Lookup</title>
+<link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -340,6 +341,7 @@
     <div class="controls">
       <button class="chip" data-f="all" aria-pressed="true">All</button>
       <button class="chip common-chip" data-f="common" aria-pressed="false">★ Common</button>
+      <button class="chip" data-f="recent" aria-pressed="false" id="recentBtn" style="display:none">⏱️ Recent</button>
       <span class="count" id="count" aria-live="polite"></span>
     </div>
   </div>
@@ -452,12 +454,15 @@ function render(){
   clearBtn.style.display=raw?'block':'none';
   let items = q ? DATA.slice()
             : filter==='common' ? DATA.filter(d=>d.common)
+            : filter==='recent' ? DATA.filter(d=>recents.includes(d.c))
             : DATA.slice();
   if(q){
     items=items.map(d=>({d,s:score(d,q)})).filter(x=>x.s>0)
                .sort((a,b)=>b.s-a.s || a.d.t.localeCompare(b.d.t)).map(x=>x.d);
   }else if(filter==='common'){
     items.sort((a,b)=>(a.ord-b.ord) || a.cat.localeCompare(b.cat) || a.t.localeCompare(b.t));
+  }else if(filter==='recent'){
+    items.sort((a,b)=>recents.indexOf(b.c) - recents.indexOf(a.c));
   }else{
     items.sort((a,b)=>a.cat.localeCompare(b.cat)||a.t.localeCompare(b.t));
   }
@@ -473,7 +478,7 @@ function render(){
   list.innerHTML=renderedItems.map((d,i)=>{
     const badge=d.src==='local'?'<span class="badge b-local">Local</span>':'';
     const star=d.common?'<span class="star" title="Common — every call">★</span>':'';
-    return `<div class="row ${d.common?'is-common':''}" data-ri="${i}">
+    return `<div tabindex="0" role="button" class="row ${d.common?'is-common':''}" data-ri="${i}">
       <span class="code">${esc(d.c)}</span>
       <span class="meta"><div class="title">${star}${highlight(d.t,q)}</div><div class="cat">${esc(d.cat)}</div></span>
       <span class="right">${badge}<span class="plus">+</span></span></div>`;
@@ -488,11 +493,15 @@ clearBtn.addEventListener('click',()=>{input.value='';input.focus();render();});
 document.querySelectorAll('.chip').forEach(ch=>ch.addEventListener('click',()=>{
   filter=ch.dataset.f; applyChips(); render();
 }));
-list.addEventListener('click',e=>{
+function onRowAction(e){
+  if(e.type==='keydown' && e.key!=='Enter' && e.key!==' ') return;
+  if(e.type==='keydown') e.preventDefault();
   if(e.target.classList.contains('ex')){input.value=e.target.textContent;input.focus();render();return;}
   const row=e.target.closest('.row');
   if(row && row.dataset.ri!==undefined) addItem(renderedItems[+row.dataset.ri], row);
-});
+}
+list.addEventListener('click',onRowAction);
+list.addEventListener('keydown',onRowAction);
 
 // modals
 const overlay=document.getElementById('overlay'), modalBody=document.getElementById('modalBody'),
@@ -531,31 +540,11 @@ function generateQuickref(cacc, service, station, bh) {
   ];
 }
 const QUICKREF_DATA = {
-  "Toronto": generateQuickref("933", "?", "?", "?"),
-  "Oshawa": generateQuickref("931", "?", "?", "?"),
-  "London": generateQuickref("910", "?", "?", "?"),
-  "Lindsay": generateQuickref("934", "?", "?", "?"),
-  "Muskoka": generateQuickref("206", "?", "?", "?"),
-  "Wallaceburg": generateQuickref("911", "?", "?", "?"),
-  "Parry Sound": generateQuickref("959", "?", "?", "?"),
-  "Renfrew": generateQuickref("941", "?", "?", "?"),
-  "Kingston": generateQuickref("942", "?", "?", "?"),
-  "Windsor": generateQuickref("912", "?", "?", "?"),
-  "ORNGE": generateQuickref("970", "?", "?", "?"),
-  "Sudbury": generateQuickref("950", "?", "?", "?"),
-  "Thunder Bay": generateQuickref("960", "?", "?", "?"),
+  "Renfrew": generateQuickref("941", "732", "00", "?"),
   "Ottawa": generateQuickref("940", "725", "002", "BH02"),
-  "Mississauga": generateQuickref("454", "?", "?", "?"),
-  "Kenora": generateQuickref("961", "?", "?", "?"),
-  "Cambridge": generateQuickref("921", "?", "?", "?"),
-  "Timmins": generateQuickref("952", "?", "?", "?"),
-  "Sault Ste Marie": generateQuickref("951", "?", "?", "?"),
-  "Georgian": generateQuickref("930", "?", "?", "?"),
-  "Niagara": generateQuickref("923", "?", "?", "?"),
-  "Hamilton": generateQuickref("920", "?", "?", "?"),
-  "James Bay": generateQuickref("263", "?", "?", "?"),
-  "Frontenac": generateQuickref("?", "?", "?", "?"),
-  "Cornwall": generateQuickref("?", "?", "?", "?")
+  "Cornwall": generateQuickref("?", "?", "?", "?"),
+  "Frontenac": generateQuickref("942", "?", "?", "?"),
+  "Parry Sound": generateQuickref("959", "?", "?", "?")
 };
 
 const COLOURS={G:["#2e9e5b","#fff","Green"],Y:["#ecc100","#3a2f00","Yellow"],
@@ -664,7 +653,19 @@ overlay.addEventListener('click',e=>{if(e.target===overlay)closeModal();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
 
 /* ---- selection queue ---- */
-let selected=[], lastCleared=null, toastTimer=null;
+let selected=[], lastCleared=null, toastTimer=null, recents=[];
+try{
+  if(localStorage.getItem('acr-queue')) selected = JSON.parse(localStorage.getItem('acr-queue')) || [];
+  if(localStorage.getItem('acr-recents')) recents = JSON.parse(localStorage.getItem('acr-recents')) || [];
+}catch(e){}
+
+function saveQueue(){ try{localStorage.setItem('acr-queue', JSON.stringify(selected));}catch(e){} }
+function saveRecents(){
+  try{localStorage.setItem('acr-recents', JSON.stringify(recents));}catch(e){}
+  const rb = document.getElementById('recentBtn');
+  if(rb) rb.style.display = recents.length ? 'inline-block' : 'none';
+}
+function haptic(){ try{if(navigator.vibrate) navigator.vibrate(10);}catch(e){} }
 const GRIP='<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="5" r="1.55"/><circle cx="15" cy="5" r="1.55"/><circle cx="9" cy="12" r="1.55"/><circle cx="15" cy="12" r="1.55"/><circle cx="9" cy="19" r="1.55"/><circle cx="15" cy="19" r="1.55"/></svg>';
 const dock=document.getElementById('dock'), dockCount=document.getElementById('dockCount'),
       queueView=document.getElementById('queueView'), queueList=document.getElementById('queueList'),
@@ -683,21 +684,25 @@ function bump(){dockCount.classList.add('bump');setTimeout(()=>dockCount.classLi
 function addItem(d,rowEl){
   if(!d) return;
   selected.push({c:d.c,t:d.t});
+  recents = recents.filter(c => c !== d.c);
+  recents.push(d.c);
+  if(recents.length > 50) recents.shift();
+  saveQueue(); saveRecents(); haptic();
   syncDock(); bump();
   if(rowEl){rowEl.classList.add('flash');setTimeout(()=>rowEl.classList.remove('flash'),230);}
   showToast('Added '+d.c+' — '+d.t);
   if(!queueView.hidden) renderQueue();
 }
-function removeAt(i){selected.splice(i,1);syncDock();renderQueue();}
-function dup(i){selected.splice(i+1,0,selected[i]);syncDock();renderQueue();}
+function removeAt(i){selected.splice(i,1);saveQueue();haptic();syncDock();renderQueue();}
+function dup(i){selected.splice(i+1,0,selected[i]);saveQueue();haptic();syncDock();renderQueue();}
 function move(i,dir){const j=i+dir;if(j<0||j>=selected.length)return;
-  [selected[i],selected[j]]=[selected[j],selected[i]];renderQueue();}
+  [selected[i],selected[j]]=[selected[j],selected[i]];saveQueue();haptic();renderQueue();}
 function clearAll(){
   if(!selected.length)return;
-  lastCleared=selected.slice(); selected=[]; syncDock(); renderQueue();
+  lastCleared=selected.slice(); selected=[]; saveQueue(); haptic(); syncDock(); renderQueue();
   showToast('List cleared', true);
 }
-function undoClear(){if(lastCleared){selected=lastCleared.slice();lastCleared=null;syncDock();renderQueue();hideToast();}}
+function undoClear(){if(lastCleared){selected=lastCleared.slice();lastCleared=null;saveQueue();haptic();syncDock();renderQueue();hideToast();}}
 
 function showToast(msg,undo){
   toastMsg.textContent=msg; toastUndo.hidden=!undo; toast.hidden=false;
@@ -725,8 +730,15 @@ function renderQueue(){
         <button class="qbtn del" data-act="del" data-i="${i}" aria-label="Remove">&times;</button>
       </span></div>`).join('');
 }
-function openQueue(){renderQueue();queueView.hidden=false;}
-function closeQueue(){queueView.hidden=true;}
+function openQueue(){
+  renderQueue();
+  if(document.startViewTransition) document.startViewTransition(()=>queueView.hidden=false);
+  else queueView.hidden=false;
+}
+function closeQueue(){
+  if(document.startViewTransition) document.startViewTransition(()=>queueView.hidden=true);
+  else queueView.hidden=true;
+}
 
 queueList.addEventListener('click',e=>{
   const b=e.target.closest('.qbtn'); if(!b)return;
@@ -772,7 +784,7 @@ queueList.addEventListener('click',e=>{
     if(dragRow){
       dragRow.classList.remove('lift');
       const next=rows().map(r=>selected[+r.dataset.i]);
-      dragRow=null; selected=next; renderQueue();
+      dragRow=null; selected=next; saveQueue(); haptic(); renderQueue();
     }
     pendRow=null; pendHandle=null; capId=null;
   }
@@ -875,7 +887,17 @@ function toggleTheme(){
   return dark;
 }
 
+if(recents.length > 0) document.getElementById('recentBtn').style.display='inline-block';
+syncDock();
 render();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(err => {
+      console.warn('SW registration failed:', err);
+    });
+  });
+}
 </script>
 </body>
 </html>
