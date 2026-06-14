@@ -461,7 +461,7 @@ function render(){
   clearBtn.style.display=raw?'block':'none';
   let items = q ? DATA.slice()
             : filter==='common' ? DATA.filter(d=>d.common)
-            : filter==='recent' ? DATA.filter(d=>recents.includes(d.c))
+            : filter==='recent' ? DATA.filter(d=>recents[d.c])
             : DATA.slice();
   if(q){
     items=items.map(d=>({d,s:score(d,q)})).filter(x=>x.s>0)
@@ -469,7 +469,12 @@ function render(){
   }else if(filter==='common'){
     items.sort((a,b)=>(a.ord-b.ord) || a.cat.localeCompare(b.cat) || a.t.localeCompare(b.t));
   }else if(filter==='recent'){
-    items.sort((a,b)=>recents.indexOf(b.c) - recents.indexOf(a.c));
+    const now = Date.now();
+    const score = c => {
+      const r = recents[c];
+      return r ? r.count * Math.exp(-0.1 * ((now - r.last) / 86400000)) : 0;
+    };
+    items.sort((a,b)=>score(b.c) - score(a.c));
   }else{
     items.sort((a,b)=>a.cat.localeCompare(b.cat)||a.t.localeCompare(b.t));
   }
@@ -660,17 +665,22 @@ overlay.addEventListener('click',e=>{if(e.target===overlay)closeModal();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
 
 /* ---- selection queue ---- */
-let selected=[], lastCleared=null, toastTimer=null, recents=[];
+let selected=[], lastCleared=null, toastTimer=null, recents={};
 try{
   if(localStorage.getItem('acr-queue')) selected = JSON.parse(localStorage.getItem('acr-queue')) || [];
-  if(localStorage.getItem('acr-recents')) recents = JSON.parse(localStorage.getItem('acr-recents')) || [];
+  const parsed = JSON.parse(localStorage.getItem('acr-recents'));
+  if(Array.isArray(parsed)){
+    parsed.forEach(c => recents[c] = {count:1, last:Date.now()});
+  } else if(parsed){
+    recents = parsed;
+  }
 }catch(e){}
 
 function saveQueue(){ try{localStorage.setItem('acr-queue', JSON.stringify(selected));}catch(e){} }
 function saveRecents(){
   try{localStorage.setItem('acr-recents', JSON.stringify(recents));}catch(e){}
   const rb = document.getElementById('recentBtn');
-  if(rb) rb.style.display = recents.length ? 'inline-block' : 'none';
+  if(rb) rb.style.display = Object.keys(recents).length ? 'inline-block' : 'none';
 }
 function haptic(){ try{if(navigator.vibrate) navigator.vibrate(10);}catch(e){} }
 const GRIP='<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="5" r="1.55"/><circle cx="15" cy="5" r="1.55"/><circle cx="9" cy="12" r="1.55"/><circle cx="15" cy="12" r="1.55"/><circle cx="9" cy="19" r="1.55"/><circle cx="15" cy="19" r="1.55"/></svg>';
@@ -691,9 +701,14 @@ function bump(){dockCount.classList.add('bump');setTimeout(()=>dockCount.classLi
 function addItem(d,rowEl){
   if(!d) return;
   selected.push({c:d.c,t:d.t});
-  recents = recents.filter(c => c !== d.c);
-  recents.push(d.c);
-  if(recents.length > 50) recents.shift();
+  if(!recents[d.c]) recents[d.c] = {count:0, last:0};
+  recents[d.c].count++;
+  recents[d.c].last = Date.now();
+  const keys = Object.keys(recents);
+  if(keys.length > 100){
+    const oldest = keys.sort((a,b)=>recents[a].last - recents[b].last)[0];
+    delete recents[oldest];
+  }
   saveQueue(); saveRecents(); haptic();
   syncDock(); bump();
   if(rowEl){rowEl.classList.add('flash');setTimeout(()=>rowEl.classList.remove('flash'),230);}
@@ -894,7 +909,7 @@ function toggleTheme(){
   return dark;
 }
 
-if(recents.length > 0) document.getElementById('recentBtn').style.display='inline-block';
+if(Object.keys(recents).length > 0) document.getElementById('recentBtn').style.display='inline-block';
 syncDock();
 render();
 
