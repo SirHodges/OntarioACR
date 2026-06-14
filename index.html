@@ -330,6 +330,9 @@
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h4l2-2h6l2 2h4v12H3z"/><circle cx="12" cy="13" r="3"/></svg>
       Other Tools
     </button>
+    <button class="tbtn primary" id="themeBtn" aria-label="Toggle day/night mode" title="Day / Night Mode">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+    </button>
   </div>
 
   <div class="searchbar">
@@ -626,8 +629,7 @@ function openAbbrev(){
 function openOtherTools(){
   const opts=[
     {t:"Ministry Approved abbreviations", act:"abbrev"},
-    {t:"Day / night mode", sub:(isDark()?"Switch to light":"Switch to dark"), act:"theme"},
-    null,null,null,null
+    null,null,null
   ];
   const body=`<div class="toolgrid">`+opts.map(o=>{
     if(!o) return `<button class="toolopt is-empty" disabled aria-label="Reserved for a future tool"></button>`;
@@ -641,6 +643,7 @@ function openOtherTools(){
 
 document.getElementById('otherToolsBtn').addEventListener('click',openOtherTools);
 document.getElementById('quickrefBtn').addEventListener('click',openQuickref);
+document.getElementById('themeBtn').addEventListener('click',toggleTheme);
 document.getElementById('closeModal').addEventListener('click',closeModal);
 document.getElementById('modalBack').addEventListener('click',()=>{const mb=document.getElementById('modalBack'); if(mb._fn) mb._fn();});
 modalBody.addEventListener('click',e=>{const b=e.target.closest('[data-act]'); if(!b) return;
