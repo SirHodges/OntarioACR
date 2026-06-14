@@ -638,9 +638,11 @@ function openAbbrev(){
   showModal('Ministry approved abbreviations', body, openOtherTools);
 }
 function openOtherTools(){
+  const keep = localStorage.getItem('acr-keepqueue') !== 'false';
   const opts=[
     {t:"Ministry Approved abbreviations", act:"abbrev"},
-    null,null,null
+    {t:"Keep my queue", sub:(keep ? "Currently: ON" : "Currently: OFF"), act:"toggle_keepqueue"},
+    null,null
   ];
   const body=`<div class="toolgrid">`+opts.map(o=>{
     if(!o) return `<button class="toolopt is-empty" disabled aria-label="Reserved for a future tool"></button>`;
@@ -660,6 +662,13 @@ document.getElementById('modalBack').addEventListener('click',()=>{const mb=docu
 modalBody.addEventListener('click',e=>{const b=e.target.closest('[data-act]'); if(!b) return;
   if(b.dataset.act==='abbrev') openAbbrev();
   else if(b.dataset.act==='theme'){ toggleTheme(); openOtherTools(); }
+  else if(b.dataset.act==='toggle_keepqueue'){
+    const keep = localStorage.getItem('acr-keepqueue') !== 'false';
+    localStorage.setItem('acr-keepqueue', keep ? 'false' : 'true');
+    if(keep) localStorage.removeItem('acr-queue');
+    else { try{localStorage.setItem('acr-queue', JSON.stringify(selected));}catch(e){} }
+    openOtherTools();
+  }
 });
 overlay.addEventListener('click',e=>{if(e.target===overlay)closeModal();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
@@ -676,7 +685,7 @@ try{
   }
 }catch(e){}
 
-function saveQueue(){ try{localStorage.setItem('acr-queue', JSON.stringify(selected));}catch(e){} }
+function saveQueue(){ try{if(localStorage.getItem('acr-keepqueue') === 'false') return; localStorage.setItem('acr-queue', JSON.stringify(selected));}catch(e){} }
 function saveRecents(){
   try{localStorage.setItem('acr-recents', JSON.stringify(recents));}catch(e){}
   const rb = document.getElementById('recentBtn');
