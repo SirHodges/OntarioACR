@@ -1,0 +1,21 @@
+{
+  "name": "OntarioACR Code Lookup",
+  "short_name": "OntarioACR",
+  "description": "Ambulance Call Report code lookup tool for Ontario paramedics.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#e30b17",
+  "icons": [
+    {
+      "src": "favicon-32x32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}
